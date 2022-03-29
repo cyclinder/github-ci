@@ -96,7 +96,6 @@ config:
     namespaceIsolation: false
     clusterNetwork: k8s-pod-network
     defaultNetwork: []
-    delegates: []
     systemNamespaces: ["kube-system"]
 
 manifests:
