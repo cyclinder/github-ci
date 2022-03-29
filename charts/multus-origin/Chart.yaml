@@ -9,4 +9,4 @@ name: multus
 sources:
 - https://github.com/intel/multus-cni
 type: application
-version: 0.1.2
+version: 0.1.3
