@@ -51,11 +51,6 @@ jobs:
             echo "::set-output name=changed::true"
           fi
 
-      # version checking, YAML schema validation on 'Chart.yaml', YAML linting on 'Chart.yaml'
-      # and 'values.yaml', and maintainer validation
-      - name: Run chart-testing (lint)
-        run: ct lint --debug --target-branch ${{ env.DEFAULT_BRANCH }}
-
       # https://github.com/helm/kind-action
       - name: Create Kind cluster
         if: steps.list-changed.outputs.changed == 'true'
