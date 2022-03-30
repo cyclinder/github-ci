@@ -8,9 +8,10 @@ jobs:
   test-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Checkout test
-        run: |
-          echo "test check"
-          git symbolic-ref --short HEAD
-          ll /charts
+    - uses: actions/checkout@v3
+
+    - name: test check
+      run: |
+        echo "test check"
+        git symbolic-ref --short HEAD
+        ll /charts
