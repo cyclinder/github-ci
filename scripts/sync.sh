@@ -2,9 +2,11 @@
 
 set -e
 
-TIME_NOW=`date "+%Y%m%d_%H%M" `
-BRANCH_NAME="sync_chart_"${TIME_NOW}
-MULTUS_REMOTE_CHART_URL="https://github.com/k8snetworkplumbingwg/helm-charts.git"
+export TIME_NOW=`date "+%Y%m%d_%H%M"`
+export BRANCH_NAME="sync_chart_"${TIME_NOW}
+export MULTUS_REMOTE_CHART_URL="https://github.com/k8snetworkplumbingwg/helm-charts.git"
+
+
 
 function get_chart {
     echo "Ready to git clone remote chart to local and copy chart file"
