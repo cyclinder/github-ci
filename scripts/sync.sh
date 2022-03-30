@@ -9,7 +9,7 @@ MULTUS_REMOTE_CHART_URL="https://github.com/k8snetworkplumbingwg/helm-charts.git
 function get_chart {
     echo "Ready to git clone remote chart to local and copy chart file"
     cd
-    git clone ${multus_remote_chart}
+    git clone ${MULTUS_REMOTE_CHART_URL}
     cp -rf helm-charts/multus/* ${GITHUB_WORKSPACE}/charts/multus-origin
 }
 
