@@ -11,6 +11,11 @@ on:
   pull_request:
     paths:
       - "charts/**"
+    types:
+      - opened
+      - reopened
+    branches:
+      - '**'
 
 jobs:
   chart-lint-test:
