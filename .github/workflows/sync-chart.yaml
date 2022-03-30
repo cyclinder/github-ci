@@ -22,4 +22,5 @@ jobs:
       - name: sync-chart-cron-3
         run: |
           echo -e ${GITHUB_WORKSPACE}
+          echo "pwd: `pwd`"
           bash ${GITHUB_WORKSPACE}/scripts/sync.sh

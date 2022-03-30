@@ -7,7 +7,8 @@ branch_name="sync_chart_"${time_now}
 
 
 function get_chart {
-    echo "git clone and copy chart file"
+    echo "ready git clone and copy chart file"
+    cd
     git clone https://github.com/k8snetworkplumbingwg/helm-charts.git
     echo "line12: `ls`"
     tree ${GITHUB_WORKSPACE}
