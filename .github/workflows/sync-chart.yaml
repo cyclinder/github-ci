@@ -21,8 +21,5 @@ jobs:
 
       - name: sync-chart-cron-3
         run: |
-          echo -e `env`
-          cd /home/runner/work/github-ci/github-ci
-          bash scripts/sync.sh
-          git symbolic-ref --short HEAD
-          git log | head -n 6
+          echo -e ${GITHUB_WORKSPACE}
+          bash ${GITHUB_WORKSPACE}/scripts/sync.sh

@@ -23,6 +23,9 @@ function update_chart() {
     git add .
     git commit -m "Automatic: update multus helm chart(${date}"
     git push --set-upstream origin ${branch_name}
+
+    git symbolic-ref --short HEAD
+    git log | head -n 6
 }
 
 get_chart
