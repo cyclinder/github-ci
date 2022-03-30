@@ -2,8 +2,8 @@
 
 set -e
 
-TIME_NOW=`date +"%Y-%m-%d"`
-BRANCH_NAME="sync_chart_"${time_now}
+TIME_NOW=`date +"%Y-%m-%d_%T"`
+BRANCH_NAME="sync_chart_"${TIME_NOW}
 MULTUS_REMOTE_CHART_URL="https://github.com/k8snetworkplumbingwg/helm-charts.git"
 
 function get_chart {
@@ -29,6 +29,5 @@ function update_chart() {
 
 get_chart
 update_chart
-echo "Update helm chart success and push to branch: ${BRANCH_NAME}"
 
 
