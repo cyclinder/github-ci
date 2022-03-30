@@ -30,5 +30,7 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' }}
         run: |
           echo "test check"
+          pwd
+          cd /home/runner/work/github-ci/github-ci
           git symbolic-ref --short HEAD
           ll /charts
