@@ -4,14 +4,31 @@ on:
   schedule:
     - cron: '* * * * *'
 
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'check chart test'
+        required: true
+        default: main
+
 jobs:
   test-check:
+    name: test-check11
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        with:
+          ref: ${{ github.event.inputs.tag }}
 
-    - name: test check
-      run: |
-        echo "test check"
-        git symbolic-ref --short HEAD
-        ll /charts
+      - name: Checkout
+        uses: actions/checkout@v3
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+
+      - name: test check
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        run: |
+          echo "test check"
+          git symbolic-ref --short HEAD
+          ll /charts
