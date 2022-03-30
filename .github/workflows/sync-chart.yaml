@@ -1,4 +1,4 @@
-name: test checkout
+name: sync-chart-cron
 
 on:
   workflow_dispatch:
@@ -9,8 +9,8 @@ on:
         default: main
 
 jobs:
-  test-check:
-    name: test-check11
+  sync-chart-cron-1:
+    name: sync-chart-cron-2
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -19,11 +19,10 @@ jobs:
         with:
           ref: ${{ github.event.inputs.tag }}
 
-      - name: test check123
+      - name: sync-chart-cron-3
         run: |
-          echo "test check"
-          echo $(pwd)
+          echo -e `env`
           cd /home/runner/work/github-ci/github-ci
-          echo $(ls)
+          bash scripts/sync.sh
           git symbolic-ref --short HEAD
-          echo $(ll /charts)
+          git log | head -n 6
