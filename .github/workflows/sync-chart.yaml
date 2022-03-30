@@ -1,0 +1,16 @@
+name: test checkout
+
+on:
+  schedule:
+    - cron: '* * * * *'
+
+jons:
+  test-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        run: |
+          echo "test check"
+          git symbolic-ref --short HEAD
+          ll /charts
