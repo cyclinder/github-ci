@@ -2,36 +2,33 @@
 
 set -e
 
-time_now=`date +"%Y-%m-%d"`
-branch_name="sync_chart_"${time_now}
-
+TIME_NOW=`date +"%Y-%m-%d"`
+BRANCH_NAME="sync_chart_"${time_now}
+MULTUS_REMOTE_CHART_URL="https://github.com/k8snetworkplumbingwg/helm-charts.git"
 
 function get_chart {
-    echo "ready git clone and copy chart file"
+    echo "Ready to git clone remote chart to local and copy chart file"
     cd
-    git clone https://github.com/k8snetworkplumbingwg/helm-charts.git
-    echo "line12: `ls`"
-    tree ${GITHUB_WORKSPACE}
+    git clone ${multus_remote_chart}
     cp -rf helm-charts/multus/* ${GITHUB_WORKSPACE}/charts/multus-origin
 }
 
 function update_chart() {
-    echo "ready update chart and push to a new branch: ${branch_name}"
-    cd ${GITHUB_WORKSPACE}
-    git checkout -b ${branch_name}
+    echo "Ready to update chart and push to a new branch: ${BRANCH_NAME}"
+    cd ${GITHUB_WORKSPACE} && git checkout -b ${BRANCH_NAME}
+    if [ -z "`git diff`" ]; then
+      echo "local helm chart no changes from remote: ${MULTUS_REMOTE_CHART_URL}"
+      exit 0
+    fi
     git config user.name github-actions
     git config user.email github-actions@github.com
-    echo `pwd`
     git add .
-    git commit -m "Automatic: update multus helm chart(${date}"
-    git push --set-upstream origin ${branch_name}
-
-    git symbolic-ref --short HEAD
-    git log | head -n 6
+    git commit -m "Automatic: Update multus helm chart(${TIME_NOW})"
+    git push --set-upstream origin ${BRANCH_NAME}
 }
 
 get_chart
 update_chart
-echo "get_chart and update_chart both is success"
+echo "Update helm chart success and push to branch: ${BRANCH_NAME}"
 
 

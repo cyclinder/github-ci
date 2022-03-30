@@ -1,4 +1,4 @@
-name: sync-chart-cron
+name: Sync-Chart-Cronjob
 
 on:
   workflow_dispatch:
@@ -9,8 +9,8 @@ on:
         default: main
 
 jobs:
-  sync-chart-cron-1:
-    name: sync-chart-cron-2
+  Sync-Chart-Cronjob:
+    name: sync-chart-cron
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -19,8 +19,17 @@ jobs:
         with:
           ref: ${{ github.event.inputs.tag }}
 
-      - name: sync-chart-cron-3
+      - name: Pull-and-Copy-Chart
         run: |
-          echo -e ${GITHUB_WORKSPACE}
-          echo "pwd: `pwd`"
           bash ${GITHUB_WORKSPACE}/scripts/sync.sh
+
+      - name: Auto-Pull-Request
+        uses: repo-sync/pull-request@v2
+        with:
+          source_branch: ${BRANCH_NAME}
+          destination_branch: "main"
+          pr_title: "Automatic PR: Update multus helm chart(${TIME_NOW})"
+          pr_label: "auto-pr"
+          pr_assignee: "cyclinder"
+
+
