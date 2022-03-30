@@ -2,9 +2,9 @@
 
 set -e
 
-export TIME_NOW=`date "+%Y%m%d_%H%M"`
-export BRANCH_NAME="sync_chart_"${TIME_NOW}
-export MULTUS_REMOTE_CHART_URL="https://github.com/k8snetworkplumbingwg/helm-charts.git"
+TIME_NOW=`date "+%Y%m%d_%H%M"`
+BRANCH_NAME="sync_chart_"${TIME_NOW}
+MULTUS_REMOTE_CHART_URL="https://github.com/k8snetworkplumbingwg/helm-charts.git"
 
 
 
@@ -29,7 +29,13 @@ function update_chart() {
     git push --set-upstream origin ${BRANCH_NAME}
 }
 
+function writeEnv() {
+    echo "TIME_NOW_ENV=${TIME_NOW}" >> $GITHUB_ENV
+    echo "BRANCH_NAME_ENV=${BRANCH_NAME}" >> $GITHUB_ENV
+}
+
 get_chart
 update_chart
+writeEnv
 
 
