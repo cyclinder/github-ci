@@ -1,9 +1,6 @@
 name: test checkout
 
 on:
-  schedule:
-    - cron: '* * * * *'
-
   workflow_dispatch:
     inputs:
       ref:
@@ -22,11 +19,7 @@ jobs:
         with:
           ref: ${{ github.event.inputs.tag }}
 
-      - name: Checkout
-        uses: actions/checkout@v3
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-
-      - name: test check
+      - name: test check123
         if: ${{ github.event_name != 'workflow_dispatch' }}
         run: |
           echo "test check"
