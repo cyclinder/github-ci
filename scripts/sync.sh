@@ -2,7 +2,7 @@
 
 set -e
 
-TIME_NOW=`date +"%Y-%m-%d_%T"`
+TIME_NOW=`date "+%Y%m%d_%H%M" `
 BRANCH_NAME="sync_chart_"${TIME_NOW}
 MULTUS_REMOTE_CHART_URL="https://github.com/k8snetworkplumbingwg/helm-charts.git"
 
