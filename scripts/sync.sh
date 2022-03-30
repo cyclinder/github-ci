@@ -9,8 +9,9 @@ branch_name="sync_chart_"${time_now}
 function get_chart {
     echo "git clone and copy chart file"
     git clone https://github.com/k8snetworkplumbingwg/helm-charts.git
+    echo "line12: `ls`"
+    tree ${GITHUB_WORKSPACE}
     cp -rf helm-charts/multus/* ${GITHUB_WORKSPACE}/charts/multus-origin
-    ls ${GITHUB_WORKSPACE}/charts/multus-origin
 }
 
 function update_chart() {
