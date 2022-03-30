@@ -26,9 +26,11 @@ jobs:
         uses: actions/checkout@v3
         if: ${{ github.event_name == 'workflow_dispatch' }}
 
-      - name: test check
+      - name: test check123
         if: ${{ github.event_name != 'workflow_dispatch' }}
         run: |
           echo "test check"
+          pwd
+          cd /home/runner/work/github-ci/github-ci
           git symbolic-ref --short HEAD
           ll /charts
