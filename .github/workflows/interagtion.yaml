@@ -1,0 +1,45 @@
+name: Integration CI
+
+
+
+on:
+  push:
+    branches:
+      - '**'
+
+  pull_request:
+    types:
+      - opened
+      - reopened
+    branches:
+      - main
+
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'check integration test'
+        required: true
+        default: main
+
+jobs:
+    integration-check:
+      name: Integration CI Check
+      runs-on: test
+      steps:
+        - name: Checkout
+          if: ${{ github.event_name == 'workflow_dispatch' }}
+          uses: actions/checkout@v3
+          with:
+            ref: ${{ github.event.inputs.tag }}
+
+        - name: Checkout
+          if: ${{ github.event_name != 'workflow_dispatch' }}
+          uses: actions/checkout@v3
+
+        - name: Integration-CI
+          run: |
+            make integration-tests
+
+        - name: Tree
+          run: |
+            make tree
