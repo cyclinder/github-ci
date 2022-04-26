@@ -56,19 +56,6 @@ jobs:
         with:
           persist-credentials: false
 
-      # https://github.com/dorny/paths-filter
-      - name: Check code changes
-        if: ${{ github.event_name == 'pull_request_target' || github.event_name == 'push' }}
-        uses: dorny/paths-filter@v2.10.2
-        id: go-changes
-        with:
-          base: ${{ github.event.pull_request_target.base.sha }}
-          ref: ${{ github.event.pull_request_target.head.sha }}
-          filters: |
-            src:
-              - cmd/**
-              - images/**
-
       - name: Result
         id: result
         run: |
@@ -81,10 +68,9 @@ jobs:
   build_and_push_prs:
     runs-on: ubuntu-latest
     # run if filters.src was changed
-    needs: filter_changes
-    if: ${{ needs.filter_changes.outputs.build == 'true' }}
     outputs:
       imageTag: ${{ steps.tag.outputs.tag }}
+      e2e: ${{ steps.tag.outputs.e2e }}
     strategy:
       matrix:
         include:
@@ -94,6 +80,7 @@ jobs:
           - name: spiderpool-controller
             dockerfile: ./images/spiderpool-controller/Dockerfile
             context: ./
+
 
     steps:
       - name: Set up Docker Buildx
@@ -110,23 +97,27 @@ jobs:
       - name: Getting image tag
         id: tag
         run: |
-          echo ${{ inputs.ref }}
+          echo ${{ github.event_name }}
           if ${{ inputs.ref != '' }}; then
               echo "trigger by workflow_call"
               echo ::set-output name=tag::${{ inputs.ref }}
               echo ::set-output name=push::${{ inputs.push }}
+              echo ::set-output name=e2e::true
           elif ${{ github.event_name == 'push' }} ; then
               echo "trigger by push"
-              echo ::set-output name=tag::${{ github.sha }}
+              echo ::set-output name=tag::"a794e2923df8e240c5167233df2e1d74bc8e5443"
               echo ::set-output name=push::false
+              echo ::set-output name=e2e::true
           elif ${{ github.event_name == 'pull_request_target' }} ; then
               echo "trigger by pull_request_target"
               echo ::set-output name=tag::${{ github.event.pull_request.head.sha }}
               echo ::set-output name=push::false
+              echo ::set-output name=e2e::true
           elif ${{ github.event_name == 'workflow_run' }} ; then
               echo "trigger by workflow_run"
               echo ::set-output name=tag::main
               echo ::set-output name=push::false
+              echo ::set-output name=e2e::false
           else
               echo "trigger by ${{ github.event_name }}"
               echo ::set-output name=tag::${{ github.sha }}
@@ -234,9 +225,9 @@ jobs:
         if: ${{ github.event_name != 'pull_request_target' }}
         shell: bash
         run: |
-          echo "build-image-ci"
+          echo "CI Image Releases digests !pull_request_target"
+          /usr/bin/docker images
           mkdir -p image-digest/
-          tree
           echo "${{ env.ONLINE_REGISTER }}/${{ github.repository }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}@${{ steps.docker_build_ci_master.outputs.digest }}" > image-digest/${{ matrix.name }}.txt
           echo "${{ env.ONLINE_REGISTER }}/${{ github.repository }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}-race@${{ steps.docker_build_ci_master_detect_race_condition.outputs.digest }}" >> image-digest/${{ matrix.name }}.txt
 
@@ -282,8 +273,9 @@ jobs:
         if: ${{ github.event_name == 'pull_request_target' }}
         shell: bash
         run: |
+          echo "CI Image Releases digests pull_request_target"
+          /usr/bin/docker images
           mkdir -p image-digest/
-          tree
           echo "${{ env.ONLINE_REGISTER }}/${{ github.repository }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}@${{ steps.docker_build_ci_pr.outputs.digest }}" > image-digest/${{ matrix.name }}.txt
           echo "${{ env.ONLINE_REGISTER }}/${{ github.repository }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}-race@${{ steps.docker_build_ci_pr_detect_race_condition.outputs.digest }}" >> image-digest/${{ matrix.name }}.txt
 
@@ -321,6 +313,13 @@ jobs:
             cp /tmp/docker-cache-${{ matrix.name }}/tmp/go-pkg-cache.tar.gz /tmp/.cache/${{ matrix.name }}/
           fi
 
+      - name: Test Images
+        run: |
+          docker images
+          pwd
+          tree
+          ls
+
   image-digests:
     name: Display Digests
     runs-on: ubuntu-latest
@@ -340,5 +339,12 @@ jobs:
         shell: bash
         run: |
           cd image-digest/
-          tree
           find -type f | sort | xargs -d '\n' cat
+
+      - name: Test
+        shell: bash
+        run: |
+          docker images
+          pwd
+          cd image-digest
+          tree
