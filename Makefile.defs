@@ -13,19 +13,6 @@ PREFIX?=/usr
 BINDIR?=$(PREFIX)/bin
 TARGETARCH ?= amd64
 
-#============ e2e-kind-config ====================
-# iptables or ipvs, default iptables
-E2E_KUBE_PROXY_MODE ?= iptables
-# ipv4 or ipv6 or dual, default ipv4
-E2E_IP_FAMILY ?= ipv4
-# true is one node cluster, false is three node cluster, default true
-E2E_SINGE_NODE ?= true
-# kubernetes version, default v1.22.1
-E2E_KIND_IMAGE_TAG ?= v1.22.1
-# disable default cni, default true
-E2E_DISABLE_DEFAULT_CNI ?= true
-E2E_CLUSTER_NAME ?= spider
-
 DESTDIR_BIN ?= $(ROOT_DIR)/output/$(TARGETARCH)/bin
 DESTDIR_BASH_COMPLETION ?= $(ROOT_DIR)/output/$(TARGETARCH)/bash-completion
 
@@ -40,6 +27,12 @@ GO_IMAGE_VERSION := $(shell awk -F. '{ z=$$3; if (z == "") z=0; print $$1 "." $$
 CONTAINER_ENGINE?=docker
 
 #------------------
+REGISTER ?= ghcr.io
+GIT_REPO ?= spidernet-io/spiderpool
+SPIDER_AGENT ?= spiderpool-agent
+SPIDER_CONTROLLER ?= spiderpool-controller
+RELEASE_NAME ?= spidernet
+
 
 VERSION = $(shell cat $(dir $(lastword $(MAKEFILE_LIST)))/VERSION)
 
@@ -137,5 +130,3 @@ GO_LIST = $(GO) list
 
 GOFILES_EVAL := $(subst _$(ROOT_DIR)/,,$(shell $(GO_LIST) -find -e ./...))
 GOFILES ?= $(GOFILES_EVAL)
-
-

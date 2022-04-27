@@ -1,90 +1,10 @@
-kube-proxy_mode ?= iptables # iptables or ipvs, default iptables
-ip_family ?= ipv4 # ipv4 or ipv6 or dual, default ipv4
-multi_node ?= true # true is three node cluster, false is one master cluster, default true
-kind_image_tag ?= v1.22.1 # kubernetes version, default v1.22.1
-
-
-
-
-
-
-vlan100 ?= 100
-
-all: build-bin install-bin
-
-.PHONY: all build install
-
-SUBDIRS := cmd/spiderpool-agent cmd/spiderpool-controller cmd/spiderpoolctl cmd/spiderpool
-
-
-build-bin:
-	for i in $(SUBDIRS); do $(MAKE) $(SUBMAKEOPTS) -C $$i all; done
-
-install-bin:
-	$(QUIET)$(INSTALL) -m 0755 -d $(DESTDIR_BIN)
-	for i in $(SUBDIRS); do $(MAKE) $(SUBMAKEOPTS) -C $$i install; done
-
-install-bash-completion:
-	$(QUIET)$(INSTALL) -m 0755 -d $(DESTDIR_BIN)
-	for i in $(SUBDIRS); do $(MAKE) $(SUBMAKEOPTS) -C $$i install-bash-completion; done
-
-clean:
-	-$(QUIET) for i in $(SUBDIRS); do $(MAKE) $(SUBMAKEOPTS) -C $$i clean; done
-	-$(QUIET) rm -rf $(DESTDIR_BIN)
-	-$(QUIET) rm -rf $(DESTDIR_BASH_COMPLETION)
-
-
-
-
-# ========kind========= #
-.PHONY: install-tools
-install-tools:
-	@echo "Run install-tools"
-	bash scripts/install-tools.sh
-
-.PHONY: kind-init
-kind-init:
-	@echo "kind-init"
-	KUBE_PROXY_MODE=$(kube-proxy_mode) IP_FAMILY=$(ip_family) MULTI_NODE=$(multi_node) KIND_IMAGE_TAG=$(kind_image_tag) \
-    p2ctl -t images/kind-config.tmpl > images/kind-config.yaml
-	kind create cluster --config images/kind-config.yaml --name spider-kind
-	kubectl get nodes
-
-.PHONY: kind-init-vlan
-kind-init-vlan:
-	@echo "kind-init-vlan"
-	@cd scripts && make test
-
-
-.PHONY: kind-init-ipv6
-kind-init-ipv6:
-	@echo "kind-init-ipv6"
-	KUBE_PROXY_MODE=iptables IP_FAMILY=ipv6 MULTI_NODE=true KIND_IMAGE_TAG=1.22.1 p2ctl -t ../images/kind-config.tmpl > ../images/kind-config.yaml
-
-.PHONY: kind-init-dual
-kind-init-dual:
-	@echo "kind-init-dual"
-	KUBE_PROXY_MODE=iptables IP_FAMILY=dual MULTI_NODE=true KIND_IMAGE_TAG=1.22.1 p2ctl -t images/kind-config.tmpl > images/kind-config.yaml
-
-IMAGE_NAMES := spiderpool-agent spiderpool-controller
-.PHONY: hey
-hey:
-	@for i in $(IMAGE_NAMES); do \
-    		docker buildx build  VERSION=latest-amd64 --file ./images/$$i/Dockerfile --output type=docker --tag ghcr.io/spidernet-io/spiderpool/$$i:latest ./	\
-    		kind load docker-image ghcr.io/spidernet-io/spiderpool/$$i:latest;	\
-    done;
-
-
-
-
-
 #!/usr/bin/make -f
 
 # Copyright 2022 Authors of spidernet-io
 # SPDX-License-Identifier: Apache-2.0
 
 
-include ./Makefile.defs
+include Makefile.defs test/Makefile.defs
 
 all: build-bin install-bin
 
@@ -92,7 +12,6 @@ all: build-bin install-bin
 
 SUBDIRS := cmd/spiderpool-agent cmd/spiderpool-controller cmd/spiderpoolctl cmd/spiderpool
 IMAGE_NAMES := spiderpool-agent spiderpool-controller
-IMAGE_TAG ?= latest
 
 build-bin:
 	for i in $(SUBDIRS); do $(MAKE) $(SUBMAKEOPTS) -C $$i all; done
@@ -105,25 +24,31 @@ install-bash-completion:
 	$(QUIET)$(INSTALL) -m 0755 -d $(DESTDIR_BIN)
 	for i in $(SUBDIRS); do $(MAKE) $(SUBMAKEOPTS) -C $$i install-bash-completion; done
 
-
-build-install: build-image install
-.PHONY: build-image
-build-image:
+# ============ build-load-image ============
+install: build-image-to-tar load-image-to-kind apply-chart-to-kind
+.PHONY: build-image-to-tar
+build-image-to-tar:
 	@for i in $(IMAGE_NAMES); do \
-		docker buildx build  --build-arg VERSION=latest-amd64 --file ./images/$$i/Dockerfile --output type=docker --tag ghcr.io/spidernet-io/spiderpool/$$i:$(IMAGE_TAG) ./ ;	\
-		kind load docker-image ghcr.io/spidernet-io/spiderpool/$$i:$(IMAGE_TAG) --name $(CLUSTER_NAME);	\
-	done;
+		docker buildx build  --build-arg RACE=1 --build-arg GIT_COMMIT_VERSION=$(GIT_COMMIT_VERSION) --build-arg GIT_COMMIT_TIME=$(GIT_COMMIT_TIME) --build-arg VERSION=$(GIT_COMMIT_VERSION) --file $(ROOT_DIR)/images/$$i/Dockerfile --output type=tar,dest=/tmp/$$i-race.tar --tag $(REGISTER)/$(GIT_REPO)/$$i-ci:$(GIT_COMMIT_VERSION)-race . ; \
+		echo "$$i image-tar build success, path: /tmp/$$i-race.tar" ; \
+	done
 
-.PHONY:
-install:
+.PHONY: load-image-to-kind
+load-image-to-kind:
+	@echo "Load Image to kind..."
+	@for i in $(IMAGE_NAMES); do \
+        cat /tmp/$$i-race.tar | docker import - $(REGISTER)/$(GIT_REPO)/$$i-ci:$(GIT_COMMIT_VERSION)-race; \
+    	kind load docker-image $(REGISTER)/$(GIT_REPO)/$$i-ci:$(GIT_COMMIT_VERSION)-race --name $(E2E_CLUSTER_NAME);	\
+    done;
+
+#=============apply-chart=================#
+.PHONY: apply-chart-to-kind
+apply-chart-to-kind:
 	helm install $(RELEASE_NAME) charts/spiderpool \
-	--set spiderpoolAgent.image.tag=$(IMAGE_TAG) \
-	--set spiderpoolController.image.tag=$(IMAGE_TAG)
-
-uninstall:
-	helm uninstall spiderpool charts/spiderpool \
-    --set spiderpoolAgent.image.tag=$(IMAGE_TAG) \
-    --set spiderpoolController.image.tag=$(IMAGE_TAG)
+    --set spiderpoolAgent.image.repository=$(REGISTER)/$(GIT_REPO)/$(SPIDER_AGENT)-ci \
+	--set spiderpoolAgent.image.tag=$(GIT_COMMIT_VERSION)-race \
+	--set spiderpoolController.image.repository=$(REGISTER)/$(GIT_REPO)/$(SPIDER_CONTROLLER)-ci \
+	--set spiderpoolController.image.tag=$(GIT_COMMIT_VERSION)-race
 
 clean:
 	-$(QUIET) for i in $(SUBDIRS); do $(MAKE) $(SUBMAKEOPTS) -C $$i clean; done
@@ -235,33 +160,27 @@ check_test_label:
 .PHONY: unitest-tests
 unitest-tests: check_test_label
 	@echo "run unitest-tests"
-	$(QUIET) $(ROOT_DIR)/ginkgo.sh   \
+	$(QUIET) $(ROOT_DIR)/tools/scripts/ginkgo.sh   \
 		--cover --coverprofile=./coverage.out --covermode set  \
 		--json-report ./testreport.json \
 		-randomize-suites -randomize-all --keep-going  --timeout=1h  -p   --slow-spec-threshold=30s \
 		-vv  -r $(ROOT_DIR)/pkg $(ROOT_DIR)/cmd
 	$(QUIET) go tool cover -html=./coverage.out -o coverage-all.html
 
-
 .PHONY: manifests
-CRD_OPTIONS ?= "crd:crdVersions=v1"
-manifests: ## Generate K8s manifests e.g. CRD, RBAC etc.
-	@echo "Generate K8s manifests e.g. CRD, RBAC etc."
-
-
+manifests:
+	@echo "Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects."
+	@$(QUIET) tools/k8s-controller-gen/update-controller-gen.sh manifests
 
 .PHONY: generate-k8s-api
-generate-k8s-api: ## Generate Cilium k8s API client, deepcopy and deepequal Go sources.
-	@$(ECHO_CHECK) tools/k8s-code-gen/update-codegen.sh "pkg/k8s/api"
-	$(QUIET) tools/k8s-code-gen/update-codegen.sh "pkg/k8s/api"
+generate-k8s-api:
+	@echo "Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations."
+	@$(QUIET) tools/k8s-controller-gen/update-controller-gen.sh deepcopy
 
-
-.PHONY: precheck
-precheck: ## Perform build precheck for the source code.
-ifeq ($(SKIP_K8S_CODE_GEN_CHECK),"false")
-	@$(ECHO_CHECK) tools/k8s-code-gen/verify-codegen.sh
-	$(QUIET) tools/k8s-code-gen/verify-codegen.sh
-endif
+.PHONY: manifests-verify
+manifests-verify:
+	@echo "Verify WebhookConfiguration, ClusterRole and CustomResourceDefinition objects."
+	@$(QUIET) tools/k8s-controller-gen/update-controller-gen.sh verify
 
 .PHONY: gofmt
 gofmt: ## Run gofmt on Go source files in the repository.
@@ -272,29 +191,6 @@ dev-doctor:
 	$(QUIET)$(GO) version 2>/dev/null || ( echo "go not found, see https://golang.org/doc/install" ; false )
 	@$(ECHO_CHECK) contrib/scripts/check-cli.sh
 	$(QUIET) contrib/scripts/check-cli.sh
-
-#============ kind-e2e ====================
-.PHONY: install-kind
-install-kind: install-tools kind-init
-
-.PHONY: kind-clean
-kind-clean:
-	@echo "Cleanup kind-config.yaml/kind cluster"
-	rm -f tools/yamls/kind-config.yaml
-	kind delete cluster --name $(CLUSTER_NAME)
-
-.PHONY: install-tools
-install-tools:
-	@echo "Run install-tools"
-	@bash tools/scripts/install-tools.sh
-
-.PHONY: kind-init
-kind-init:
-	@cd test && make kind-init
-ifneq ($(INSTALL_SPIDER),)
-	@echo "Install SpiderPool"
-	@make build-install
-endif
 
 #============ tools ====================
 
@@ -347,23 +243,23 @@ endif
 
 .PHONY: openapi-validate-spec
 openapi-validate-spec: ## validate the given spec, like 'json/yaml'
-	$(QUIET) tools/scripts/swag.sh validate $(CURDIR)/api/v1beta/spiderpool-agent
-	$(QUIET) tools/scripts/swag.sh validate $(CURDIR)/api/v1beta/spiderpool-controller
+	$(QUIET) tools/scripts/swag.sh validate $(CURDIR)/api/v1/agent
+	$(QUIET) tools/scripts/swag.sh validate $(CURDIR)/api/v1/controller
 
 .PHONY: openapi-code-gen
 openapi-code-gen: openapi-validate-spec clean-openapi-code	## generate openapi source codes with the given spec.
-	$(QUIET) tools/scripts/swag.sh generate $(CURDIR)/api/v1beta/spiderpool-agent
-	$(QUIET) tools/scripts/swag.sh generate $(CURDIR)/api/v1beta/spiderpool-controller
+	$(QUIET) tools/scripts/swag.sh generate $(CURDIR)/api/v1/agent
+	$(QUIET) tools/scripts/swag.sh generate $(CURDIR)/api/v1/controller
 
 .PHONY: openapi-verify
 openapi-verify: openapi-validate-spec	## verify the current generated openapi source codes are not out of date with the given spec.
-	$(QUIET) tools/scripts/swag.sh verify $(CURDIR)/api/v1beta/spiderpool-agent
-	$(QUIET) tools/scripts/swag.sh verify $(CURDIR)/api/v1beta/spiderpool-controller
+	$(QUIET) tools/scripts/swag.sh verify $(CURDIR)/api/v1/agent
+	$(QUIET) tools/scripts/swag.sh verify $(CURDIR)/api/v1/controller
 
 .PHONY: clean-openapi-code
 clean-openapi-code:	## clean up generated openapi source codes
-	$(QUIET) tools/scripts/swag.sh clean $(CURDIR)/api/v1beta/spiderpool-agent
-	$(QUIET) tools/scripts/swag.sh clean $(CURDIR)/api/v1beta/spiderpool-controller
+	$(QUIET) tools/scripts/swag.sh clean $(CURDIR)/api/v1/agent
+	$(QUIET) tools/scripts/swag.sh clean $(CURDIR)/api/v1/controller
 
 .PHONY: clean-openapi-tmp
 clean-openapi-tmp:	## clean up '_openapi_tmp' dir
@@ -373,8 +269,7 @@ clean-openapi-tmp:	## clean up '_openapi_tmp' dir
 openapi-ui:	## set up swagger-ui in local.
 	@$(CONTAINER_ENGINE) container run --rm -it -p 8080:8080 \
 		-e SWAGGER_JSON=/foo/agent-swagger.yml \
-		-v $(CURDIR)/api/v1beta/spiderpool-agent/swagger.yml:/foo/agent-swagger.yml \
-		-v $(CURDIR)/api/v1beta/spiderpool-controller/swagger.yml:/foo/controller-swagger.yml \
+		-v $(CURDIR)/api/v1/agent/openapi.yaml:/foo/agent-swagger.yml \
+		-v $(CURDIR)/api/v1/controller/openapi.yaml:/foo/controller-swagger.yml \
 		swaggerapi/swagger-ui
-
 

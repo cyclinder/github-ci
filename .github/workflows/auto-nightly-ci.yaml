@@ -1,0 +1,166 @@
+name: Auto Nightly CI
+
+env:
+  CLUSTER_NAME: spider
+
+on:
+  schedule:
+    # each day
+    - cron: "0 20 * * *"
+
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - reopened
+  push:
+    branches:
+      - main
+      - release-*
+
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'sha, tag, branch'
+        required: true
+        default: main
+      e2e:
+        description: 'e2e type'
+        required: true
+        default: 'smoke'
+        type: choice
+        options:
+        - smoke
+        - none
+        - all
+      lables:
+        description: 'ginkgo lables'
+        required: false
+        type: list
+
+
+
+jobs:
+  get_ref:
+    runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.result.outputs.ref }}
+      e2e_type: ${{ steps.get_ref.outputs.e2e_type }}
+    steps:
+      - name: Get Ref
+        id: get_ref
+        run: |
+          if ${{ github.event_name == 'workflow_dispatch' }} ; then
+            echo "call by self workflow_dispatch"
+            echo ::set-output name=tag::${{ github.event.inputs.ref }}
+            echo ::set-output name=e2e_type::${{ github.event.inputs.e2e.options }}
+          elif ${{ github.event_name == 'push' }} ; then
+            echo "trigger by push"
+            echo ::set-output name=tag::${{ github.sha }}
+            echo ::set-output name=push::false
+            echo ::set-output name=e2e_type::smoke
+          elif ${{ github.event_name == 'pull_request_target' }} ; then
+            echo "trigger by pull_request_target"
+            echo ::set-output name=tag::${{ github.event.pull_request.head.sha }}
+            echo ::set-output name=push::false
+            echo ::set-output name=e2e_type::smoke
+          else
+            # use main sha for ci image tag
+            echo "trigger by schedule"
+            echo ::set-output name=tag::main
+            echo ::set-output name=push::false
+            echo ::set-output name=e2e_type::smoke
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+          ref: ${{ steps.ref.outputs.tag }}
+
+      - name: Result Ref
+        id: result
+        run: |
+          ref=$( git show -s --format='format:%H')
+          echo ::set-output name=ref::${ref}
+
+
+  call_build_ci_image:
+    needs: get_ref
+    uses: ./.github/workflows/build-image-ci.yaml
+    with:
+      ref: ${{ needs.get_ref.outputs.ref }}
+      push: false
+
+
+  call_e2e_test_smoke:
+    runs-on: ubuntu-latest
+    # if: ${{ needs.get_ref.outputs.e2e_type == 'smoke' }}
+    needs: [call_build_ci_image, get_ref]
+    timeout-minutes: 60
+    steps:
+      - name: Prepare
+        run: |
+          echo "ref: ${{ needs.get_ref.outputs.ref }} "
+          echo "e2e_type: ${{ needs.get_ref.outputs.e2e_type }} "
+          echo "===== image "
+          echo "ci image tag: ghcr.io/${{ github.repository }}/spiderpool-controller-ci:${{ needs.call_build_ci_image.outputs.imageTag }}"
+          echo "ci race image tag: ghcr.io/${{ github.repository }}/spiderpool-controller-ci:${{ needs.call_build_ci_image.outputs.imageTag }}-race"
+          echo "ci image tag: ghcr.io/${{ github.repository }}/spiderpool-agent-ci:${{ needs.call_build_ci_image.outputs.imageTag }}"
+          echo "ci race image tag: ghcr.io/${{ github.repository }}/spiderpool-agent-ci:${{ needs.call_build_ci_image.outputs.imageTag }}-race"
+          echo "===== chart "
+          echo "chart package artifact: ${{ needs.call_release_chart.outputs.artifact }}"
+
+
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Setup Golang
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.17
+          id: go
+
+      - name: Install Tools
+        run: |
+          # install kind/p2ctl/helm/ginkgo
+          bash ./test/scripts/install-tools.sh
+
+      - name: Init Kind Cluster
+        run: |
+          make -C test kind-init INSTALL_MACVLAN=true INSTALL_WHEREABOUTS=true SINGE_NODE=false
+
+      - name: Download spiderpool-agent image
+        uses: actions/download-artifact@v2
+        with:
+          name: image-tar spiderpool-agent
+          path: /tmp
+
+      - name: Download spiderpool-controller image
+        uses: actions/download-artifact@v2
+        with:
+          name: image-tar spiderpool-controller
+          path: /tmp
+
+      - name: Load Image to Kind
+        run: |
+          make load-image-to-kind GIT_REPO=${{ github.repository }} E2E_CLUSTER_NAME=${{ env.CLUSTER_NAME }}
+
+      - name: Helm Install Spiderpool
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          shell: bash
+          command: |
+            make apply-chart-to-kind GIT_REPO=${{ github.repository }}
+
+      - name: Run e2e
+        run: |
+          echo "make -C test e2e-test"
+
+      - name: Clean Up
+        run: |
+          echo "clean up"
+          make -C test kind-clean E2E_CLUSTER_NAME=${{ env.CLUSTER_NAME }}
+

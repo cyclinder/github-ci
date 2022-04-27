@@ -7,15 +7,6 @@ env:
   ONLINE_REGISTER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
 on:
-  pull_request_target:
-    types:
-      - opened
-      - synchronize
-      - reopened
-  push:
-    branches:
-      - main
-      - release-*
   workflow_run:
     workflows:
       - "Image CI Cache Cleaner"
@@ -33,6 +24,7 @@ on:
       push:
         required: true
         type: string
+
     outputs:
       imageTag:
         description: "tag of image ci"
@@ -43,28 +35,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # filter changes base filt path , so can do less thing
-  filter_changes:
-    name: Deduce required tests from code changes
-    runs-on: ubuntu-latest
-    outputs:
-      build: ${{ steps.result.outputs.result }}
-    steps:
-      - name: Checkout code
-        if: ${{ github.event_name == 'pull_request_target' || github.event_name == 'push' }}
-        uses: actions/checkout@v3
-        with:
-          persist-credentials: false
-
-      - name: Result
-        id: result
-        run: |
-          if ${{ github.event_name != 'pull_request_target' && github.event_name != 'push' }} ; then
-              echo ::set-output name=result::true
-          else
-              echo ::set-output name=result::${{ steps.go-changes.outputs.src }}
-          fi
-
   build_and_push_prs:
     runs-on: ubuntu-latest
     # run if filters.src was changed
@@ -80,7 +50,6 @@ jobs:
           - name: spiderpool-controller
             dockerfile: ./images/spiderpool-controller/Dockerfile
             context: ./
-
 
     steps:
       - name: Set up Docker Buildx
@@ -102,22 +71,18 @@ jobs:
               echo "trigger by workflow_call"
               echo ::set-output name=tag::${{ inputs.ref }}
               echo ::set-output name=push::${{ inputs.push }}
-              echo ::set-output name=e2e::true
           elif ${{ github.event_name == 'push' }} ; then
               echo "trigger by push"
-              echo ::set-output name=tag::"a794e2923df8e240c5167233df2e1d74bc8e5443"
+              echo ::set-output name=tag::${{ github.sha }}
               echo ::set-output name=push::false
-              echo ::set-output name=e2e::true
           elif ${{ github.event_name == 'pull_request_target' }} ; then
               echo "trigger by pull_request_target"
               echo ::set-output name=tag::${{ github.event.pull_request.head.sha }}
               echo ::set-output name=push::false
-              echo ::set-output name=e2e::true
           elif ${{ github.event_name == 'workflow_run' }} ; then
               echo "trigger by workflow_run"
               echo ::set-output name=tag::main
               echo ::set-output name=push::false
-              echo ::set-output name=e2e::false
           else
               echo "trigger by ${{ github.event_name }}"
               echo ::set-output name=tag::${{ github.sha }}
@@ -191,6 +156,7 @@ jobs:
           push: ${{ steps.tag.outputs.push }}
           platforms: linux/amd64,linux/arm64
           github-token: ${{ secrets.WELAN_PAT }}
+          outputs: type=tar,dest=/tmp/${{ matrix.name }}-normal.tar
           tags: |
             ${{ env.ONLINE_REGISTER }}/${{ github.repository }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}
           build-args: |
@@ -212,6 +178,7 @@ jobs:
           # docker cache after the workflow "Image CI Cache Cleaner" was terminated.
           push: ${{ steps.tag.outputs.push }}
           platforms: linux/amd64
+          outputs: type=tar,dest=/tmp/${{ matrix.name }}-race.tar
           github-token: ${{ secrets.WELAN_PAT }}
           tags: |
             ${{ env.ONLINE_REGISTER }}/${{ github.repository }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}-race
@@ -225,8 +192,6 @@ jobs:
         if: ${{ github.event_name != 'pull_request_target' }}
         shell: bash
         run: |
-          echo "CI Image Releases digests !pull_request_target"
-          /usr/bin/docker images
           mkdir -p image-digest/
           echo "${{ env.ONLINE_REGISTER }}/${{ github.repository }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}@${{ steps.docker_build_ci_master.outputs.digest }}" > image-digest/${{ matrix.name }}.txt
           echo "${{ env.ONLINE_REGISTER }}/${{ github.repository }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}-race@${{ steps.docker_build_ci_master_detect_race_condition.outputs.digest }}" >> image-digest/${{ matrix.name }}.txt
@@ -261,6 +226,7 @@ jobs:
           push: ${{ steps.tag.outputs.push }}
           platforms: linux/amd64
           github-token: ${{ secrets.WELAN_PAT }}
+          outputs: type=tar,dest=/tmp/${{ matrix.name }}.tar
           tags: |
             ${{ env.ONLINE_REGISTER }}/${{ github.repository }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}-race
           build-args: |
@@ -273,8 +239,6 @@ jobs:
         if: ${{ github.event_name == 'pull_request_target' }}
         shell: bash
         run: |
-          echo "CI Image Releases digests pull_request_target"
-          /usr/bin/docker images
           mkdir -p image-digest/
           echo "${{ env.ONLINE_REGISTER }}/${{ github.repository }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}@${{ steps.docker_build_ci_pr.outputs.digest }}" > image-digest/${{ matrix.name }}.txt
           echo "${{ env.ONLINE_REGISTER }}/${{ github.repository }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}-race@${{ steps.docker_build_ci_pr_detect_race_condition.outputs.digest }}" >> image-digest/${{ matrix.name }}.txt
@@ -285,6 +249,15 @@ jobs:
         with:
           name: image-digest ${{ matrix.name }}
           path: image-digest
+          retention-days: 1
+
+      # Upload artifact race images tar
+      - name: Upload artifact race image tar
+        if: ${{ github.event_name != 'pull_request_target' }}
+        uses: actions/upload-artifact@v3.0.0
+        with:
+          name: image-tar ${{ matrix.name }}
+          path: /tmp/${{ matrix.name }}-race.tar
           retention-days: 1
 
       # =============  restore cache ===========
@@ -313,13 +286,6 @@ jobs:
             cp /tmp/docker-cache-${{ matrix.name }}/tmp/go-pkg-cache.tar.gz /tmp/.cache/${{ matrix.name }}/
           fi
 
-      - name: Test Images
-        run: |
-          docker images
-          pwd
-          tree
-          ls
-
   image-digests:
     name: Display Digests
     runs-on: ubuntu-latest
@@ -340,11 +306,3 @@ jobs:
         run: |
           cd image-digest/
           find -type f | sort | xargs -d '\n' cat
-
-      - name: Test
-        shell: bash
-        run: |
-          docker images
-          pwd
-          cd image-digest
-          tree
