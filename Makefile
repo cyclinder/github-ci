@@ -48,7 +48,7 @@ apply-chart-to-kind:
     --set spiderpoolAgent.image.repository=$(REGISTER)/$(GIT_REPO)/$(SPIDER_AGENT)-ci \
 	--set spiderpoolAgent.image.tag=$(GIT_COMMIT_VERSION)-race \
 	--set spiderpoolController.image.repository=$(REGISTER)/$(GIT_REPO)/$(SPIDER_CONTROLLER)-ci \
-	--set spiderpoolController.image.tag=$(GIT_COMMIT_VERSION)-race
+	--set spiderpoolController.image.tag=$(GIT_COMMIT_VERSION)-race --kubeconfig $(HOME)/kind/$(E2E_CLUSTER_NAME)/.kube/config
 
 clean:
 	-$(QUIET) for i in $(SUBDIRS); do $(MAKE) $(SUBMAKEOPTS) -C $$i clean; done
@@ -272,4 +272,3 @@ openapi-ui:	## set up swagger-ui in local.
 		-v $(CURDIR)/api/v1/agent/openapi.yaml:/foo/agent-swagger.yml \
 		-v $(CURDIR)/api/v1/controller/openapi.yaml:/foo/controller-swagger.yml \
 		swaggerapi/swagger-ui
-

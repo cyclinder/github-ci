@@ -2,13 +2,7 @@
 
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Authors of Spider
-
 IMAGE_NAME="ghcr.io/k8snetworkplumbingwg/whereabouts:latest-amd64"
-
-IMAGE_EXIST=$(docker images | grep $IMAGE_NAME)
-if test -z "$IMAGE_EXIST"; then
-  docker pull $IMAGE_NAME
-fi
 
 echo "kind load docker-image $IMAGE_NAME --name $1"
 kind load docker-image $IMAGE_NAME --name $1
@@ -18,4 +12,4 @@ kubectl apply \
       -f $(pwd)/yamls/daemonset-install.yaml \
       -f $(pwd)/yamls/whereabouts.cni.cncf.io_ippools.yaml \
       -f $(pwd)/yamls/whereabouts.cni.cncf.io_overlappingrangeipreservations.yaml \
-      -f $(pwd)/yamls/ip-reconciler-job.yaml
+      -f $(pwd)/yamls/ip-reconciler-job.yaml --kubeconfig $HOME/kind/$1/.kube/config

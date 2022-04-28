@@ -33,12 +33,10 @@ on:
         - smoke
         - none
         - all
-      lables:
-        description: 'ginkgo lables'
+      labels:
+        description: 'ginkgo labels'
         required: false
-        type: list
-
-
+        type: string
 
 jobs:
   get_ref:
@@ -53,7 +51,8 @@ jobs:
           if ${{ github.event_name == 'workflow_dispatch' }} ; then
             echo "call by self workflow_dispatch"
             echo ::set-output name=tag::${{ github.event.inputs.ref }}
-            echo ::set-output name=e2e_type::${{ github.event.inputs.e2e.options }}
+            echo ::set-output name=e2e_type::${{ github.event.inputs.e2e }}
+            echo ::set-output name=e2e_labels::${{ github.event.inputs.labels }}
           elif ${{ github.event_name == 'push' }} ; then
             echo "trigger by push"
             echo ::set-output name=tag::${{ github.sha }}
@@ -84,14 +83,13 @@ jobs:
           ref=$( git show -s --format='format:%H')
           echo ::set-output name=ref::${ref}
 
-
   call_build_ci_image:
-    needs: get_ref
+    needs: [get_ref]
+    # get  image:${{ needs.get_ref.outputs.ref }} and image-ci:${{ needs.get_ref.outputs.ref }}
     uses: ./.github/workflows/build-image-ci.yaml
     with:
       ref: ${{ needs.get_ref.outputs.ref }}
       push: false
-
 
   call_e2e_test_smoke:
     runs-on: ubuntu-latest
@@ -103,6 +101,7 @@ jobs:
         run: |
           echo "ref: ${{ needs.get_ref.outputs.ref }} "
           echo "e2e_type: ${{ needs.get_ref.outputs.e2e_type }} "
+          echo "e2e_labels: ${{ github.event.inputs.labels }} "
           echo "===== image "
           echo "ci image tag: ghcr.io/${{ github.repository }}/spiderpool-controller-ci:${{ needs.call_build_ci_image.outputs.imageTag }}"
           echo "ci race image tag: ghcr.io/${{ github.repository }}/spiderpool-controller-ci:${{ needs.call_build_ci_image.outputs.imageTag }}-race"
@@ -128,7 +127,7 @@ jobs:
 
       - name: Init Kind Cluster
         run: |
-          make -C test kind-init INSTALL_MACVLAN=true INSTALL_WHEREABOUTS=true SINGE_NODE=false
+          make -C test kind-init INSTALL_MACVLAN=true INSTALL_WHEREABOUTS=true E2E_SINGE_NODE=false
 
       - name: Download spiderpool-agent image
         uses: actions/download-artifact@v2
@@ -153,14 +152,14 @@ jobs:
           max_attempts: 3
           shell: bash
           command: |
-            make apply-chart-to-kind GIT_REPO=${{ github.repository }}
+            make apply-chart-to-kind GIT_REPO=${{ github.repository }} E2E_CLUSTER_NAME=${{ env.CLUSTER_NAME }}
 
       - name: Run e2e
         run: |
-          echo "make -C test e2e-test"
+          echo ${{ github.event.inputs.labels }}
+          make -C test e2e-test E2E_CLUSTER_NAME=${{ env.CLUSTER_NAME }} E2E_GINKGO_LABELS=${{ github.event.inputs.labels }}
 
       - name: Clean Up
         run: |
           echo "clean up"
           make -C test kind-clean E2E_CLUSTER_NAME=${{ env.CLUSTER_NAME }}
-
