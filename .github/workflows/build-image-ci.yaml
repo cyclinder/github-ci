@@ -156,7 +156,6 @@ jobs:
           push: ${{ steps.tag.outputs.push }}
           platforms: linux/amd64,linux/arm64
           github-token: ${{ secrets.WELAN_PAT }}
-          outputs: type=tar,dest=/tmp/${{ matrix.name }}-normal.tar
           tags: |
             ${{ env.ONLINE_REGISTER }}/${{ github.repository }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}
           build-args: |
@@ -247,7 +246,7 @@ jobs:
       - name: Upload artifact digests
         uses: actions/upload-artifact@v3.0.0
         with:
-          name: image-digest ${{ matrix.name }}
+          name: image-digest-${{ matrix.name }}
           path: image-digest
           retention-days: 1
 
@@ -256,7 +255,7 @@ jobs:
         if: ${{ github.event_name != 'pull_request_target' }}
         uses: actions/upload-artifact@v3.0.0
         with:
-          name: image-tar ${{ matrix.name }}
+          name: image-tar-${{ matrix.name }}
           path: /tmp/${{ matrix.name }}-race.tar
           retention-days: 1
 
@@ -290,6 +289,13 @@ jobs:
     name: Display Digests
     runs-on: ubuntu-latest
     needs: build_and_push_prs
+    strategy:
+          matrix:
+            include:
+              - name: spiderpool-agent
+                context: ./
+              - name: spiderpool-controller
+                context: ./
     steps:
       - name: Downloading Image Digests
         shell: bash
@@ -300,9 +306,12 @@ jobs:
         uses: actions/download-artifact@v3.0.0
         with:
           path: image-digest/
+          name: image-digest-${{ matrix.name }}
 
       - name: Image Digests Output
         shell: bash
         run: |
           cd image-digest/
+          ls
+          tree
           find -type f | sort | xargs -d '\n' cat

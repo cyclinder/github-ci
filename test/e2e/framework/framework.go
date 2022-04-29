@@ -4,12 +4,10 @@
 package framework
 
 import (
-	"fmt"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
-	"os"
 )
 
 const SpiderLabelSelector = "app.kubernetes.io/name: spiderpool"
@@ -22,11 +20,14 @@ type Framework struct {
 }
 
 // NewFramework init Framework struct
-func NewFramework(baseName, clusterName string) *Framework {
+func NewFramework(baseName, kubeconfig string) *Framework {
 	f := &Framework{BaseName: baseName}
 
-	kubeconfigPath := fmt.Sprintf("%s/kind/%s/.kube/config", os.Getenv("HOME"), clusterName)
-	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	if kubeconfig == "" {
+		klog.Fatal("kubeconfig must be specify")
+	}
+	klog.Info("kubeconfig: ", kubeconfig)
+	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		klog.Fatal(err)
 	}

@@ -6,8 +6,8 @@
 NODES=($(docker ps | grep -w $1 | awk '{print $1}'))
 for node in ${NODES[@]}
 do
-  echo "docker cp /tmp/cni-plugins-linux-amd64-v0.8.5.tgz $node:/root"
-  docker cp /tmp/cni-plugins-linux-amd64-v0.8.5.tgz $node:/root/
+  echo "docker cp $2/tmp/cni-plugins-linux-amd64-v0.8.5.tgz $node:/root"
+  docker cp $2/tmp/cni-plugins-linux-amd64-v0.8.5.tgz $node:/root/
   docker exec $node mkdir -p /host/opt/cni/bin
   docker exec $node tar xvfzp /root/cni-plugins-linux-amd64-v0.8.5.tgz -C /opt/cni/bin
 done

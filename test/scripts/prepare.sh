@@ -2,7 +2,6 @@
 ## SPDX-License-Identifier: Apache-2.0
 ## Copyright Authors of Spider
 
-
 OS=$(uname | tr 'A-Z' 'a-z')
 READY=true
 
@@ -50,11 +49,11 @@ fi
 
 
 # prepare cni-plugins
-if [ ! -f  "/tmp/cni-plugins-linux-amd64-v0.8.5.tgz" ]; then
-  echo "/tmp/cni-plugins-linux-amd64-v0.8.5.tgz no exist, downloading..."
-  wget -P /tmp https://github.com/containernetworking/plugins/releases/download/v0.8.5/cni-plugins-linux-amd64-v0.8.5.tgz
+if [ ! -f  "$1/tmp/cni-plugins-linux-amd64-v0.8.5.tgz" ]; then
+  echo "$1/tmp/cni-plugins-linux-amd64-v0.8.5.tgz no exist, downloading..."
+  wget -P $1/tmp https://github.com/containernetworking/plugins/releases/download/v0.8.5/cni-plugins-linux-amd64-v0.8.5.tgz
 else
-  echo "/tmp/cni-plugins-linux-amd64-v0.8.5.tgz exist, skip download..."
+  echo "$1/tmp/cni-plugins-linux-amd64-v0.8.5.tgz exist, skip download..."
 fi
 
 # prepare whereabouts image
@@ -67,5 +66,3 @@ if test -z "$IMAGE_EXIST"; then
 else
   echo "Image: $IMAGE_NAME already exist locally"
 fi
-
-# prepare alpine

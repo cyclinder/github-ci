@@ -24,17 +24,9 @@ on:
         description: 'sha, tag, branch'
         required: true
         default: main
-      e2e:
-        description: 'e2e type'
-        required: true
-        default: 'smoke'
-        type: choice
-        options:
-        - smoke
-        - none
-        - all
-      labels:
-        description: 'ginkgo labels'
+
+      e2e_labels:
+        description: 'e2e labels(if not set, ginkgo will run all test, multi labels separated by commas)'
         required: false
         type: string
 
@@ -43,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       ref: ${{ steps.result.outputs.ref }}
-      e2e_type: ${{ steps.get_ref.outputs.e2e_type }}
+      e2e_labels: ${{ steps.get_ref.outputs.e2e_labels }}
     steps:
       - name: Get Ref
         id: get_ref
@@ -51,24 +43,23 @@ jobs:
           if ${{ github.event_name == 'workflow_dispatch' }} ; then
             echo "call by self workflow_dispatch"
             echo ::set-output name=tag::${{ github.event.inputs.ref }}
-            echo ::set-output name=e2e_type::${{ github.event.inputs.e2e }}
-            echo ::set-output name=e2e_labels::${{ github.event.inputs.labels }}
+            echo ::set-output name=e2e_labels::${{ github.event.inputs.e2e_labels }}
           elif ${{ github.event_name == 'push' }} ; then
             echo "trigger by push"
             echo ::set-output name=tag::${{ github.sha }}
             echo ::set-output name=push::false
-            echo ::set-output name=e2e_type::smoke
+            echo ::set-output name=e2e_labels::smoke
           elif ${{ github.event_name == 'pull_request_target' }} ; then
             echo "trigger by pull_request_target"
             echo ::set-output name=tag::${{ github.event.pull_request.head.sha }}
             echo ::set-output name=push::false
-            echo ::set-output name=e2e_type::smoke
+            echo ::set-output name=e2e_labels::smoke
           else
             # use main sha for ci image tag
             echo "trigger by schedule"
             echo ::set-output name=tag::main
             echo ::set-output name=push::false
-            echo ::set-output name=e2e_type::smoke
+            echo ::set-output name=e2e_labels::smoke
           fi
 
       - name: Checkout code
@@ -83,25 +74,25 @@ jobs:
           ref=$( git show -s --format='format:%H')
           echo ::set-output name=ref::${ref}
 
+
   call_build_ci_image:
-    needs: [get_ref]
+    needs: get_ref
     # get  image:${{ needs.get_ref.outputs.ref }} and image-ci:${{ needs.get_ref.outputs.ref }}
     uses: ./.github/workflows/build-image-ci.yaml
     with:
       ref: ${{ needs.get_ref.outputs.ref }}
       push: false
 
+
   call_e2e_test_smoke:
     runs-on: ubuntu-latest
-    # if: ${{ needs.get_ref.outputs.e2e_type == 'smoke' }}
     needs: [call_build_ci_image, get_ref]
     timeout-minutes: 60
     steps:
       - name: Prepare
         run: |
           echo "ref: ${{ needs.get_ref.outputs.ref }} "
-          echo "e2e_type: ${{ needs.get_ref.outputs.e2e_type }} "
-          echo "e2e_labels: ${{ github.event.inputs.labels }} "
+          echo "e2e_labels: ${{ needs.get_ref.outputs.e2e_labels }} "
           echo "===== image "
           echo "ci image tag: ghcr.io/${{ github.repository }}/spiderpool-controller-ci:${{ needs.call_build_ci_image.outputs.imageTag }}"
           echo "ci race image tag: ghcr.io/${{ github.repository }}/spiderpool-controller-ci:${{ needs.call_build_ci_image.outputs.imageTag }}-race"
@@ -127,23 +118,23 @@ jobs:
 
       - name: Init Kind Cluster
         run: |
-          make -C test kind-init INSTALL_MACVLAN=true INSTALL_WHEREABOUTS=true E2E_SINGE_NODE=false
+          make -C test kind-init
 
       - name: Download spiderpool-agent image
         uses: actions/download-artifact@v2
         with:
-          name: image-tar spiderpool-agent
-          path: /tmp
+          name: image-tar-spiderpool-agent
+          path: tmp
 
       - name: Download spiderpool-controller image
         uses: actions/download-artifact@v2
         with:
-          name: image-tar spiderpool-controller
-          path: /tmp
+          name: image-tar-spiderpool-controller
+          path: tmp
 
       - name: Load Image to Kind
         run: |
-          make load-image-to-kind GIT_REPO=${{ github.repository }} E2E_CLUSTER_NAME=${{ env.CLUSTER_NAME }}
+          make load-image-to-kind  E2E_CLUSTER_NAME=${{ env.CLUSTER_NAME }}
 
       - name: Helm Install Spiderpool
         uses: nick-invision/retry@v2
@@ -152,14 +143,13 @@ jobs:
           max_attempts: 3
           shell: bash
           command: |
-            make apply-chart-to-kind GIT_REPO=${{ github.repository }} E2E_CLUSTER_NAME=${{ env.CLUSTER_NAME }}
+            make apply-chart-to-kind  E2E_CLUSTER_NAME=${{ env.CLUSTER_NAME }}
 
       - name: Run e2e
         run: |
           echo ${{ github.event.inputs.labels }}
-          make -C test e2e-test E2E_CLUSTER_NAME=${{ env.CLUSTER_NAME }} E2E_GINKGO_LABELS=${{ github.event.inputs.labels }}
+          make -C test e2e-test E2E_CLUSTER_NAME=${{ env.CLUSTER_NAME }} E2E_GINKGO_LABELS=${{ needs.get_ref.outputs.e2e_labels }} E2E_TIMEOUT=${{ timeout-minutes }}
 
       - name: Clean Up
         run: |
-          echo "clean up"
           make -C test kind-clean E2E_CLUSTER_NAME=${{ env.CLUSTER_NAME }}

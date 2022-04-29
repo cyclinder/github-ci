@@ -11,7 +11,6 @@ all: build-bin install-bin
 .PHONY: all build install
 
 SUBDIRS := cmd/spiderpool-agent cmd/spiderpool-controller cmd/spiderpoolctl cmd/spiderpool
-IMAGE_NAMES := spiderpool-agent spiderpool-controller
 
 build-bin:
 	for i in $(SUBDIRS); do $(MAKE) $(SUBMAKEOPTS) -C $$i all; done
@@ -24,31 +23,33 @@ install-bash-completion:
 	$(QUIET)$(INSTALL) -m 0755 -d $(DESTDIR_BIN)
 	for i in $(SUBDIRS); do $(MAKE) $(SUBMAKEOPTS) -C $$i install-bash-completion; done
 
+
 # ============ build-load-image ============
 install: build-image-to-tar load-image-to-kind apply-chart-to-kind
 .PHONY: build-image-to-tar
 build-image-to-tar:
-	@for i in $(IMAGE_NAMES); do \
-		docker buildx build  --build-arg RACE=1 --build-arg GIT_COMMIT_VERSION=$(GIT_COMMIT_VERSION) --build-arg GIT_COMMIT_TIME=$(GIT_COMMIT_TIME) --build-arg VERSION=$(GIT_COMMIT_VERSION) --file $(ROOT_DIR)/images/$$i/Dockerfile --output type=tar,dest=/tmp/$$i-race.tar --tag $(REGISTER)/$(GIT_REPO)/$$i-ci:$(GIT_COMMIT_VERSION)-race . ; \
-		echo "$$i image-tar build success, path: /tmp/$$i-race.tar" ; \
+	@echo "Build Image with tag: $(GIT_COMMIT_VERSION)"
+	@for i in $(IMAGES); do \
+		docker buildx build  --build-arg RACE=1 --build-arg GIT_COMMIT_VERSION=$(GIT_COMMIT_VERSION) --build-arg GIT_COMMIT_TIME=$(GIT_COMMIT_TIME) --build-arg VERSION=$(GIT_COMMIT_VERSION) --file $(ROOT_DIR)/images/"$${i##*/}"/Dockerfile --output type=tar,dest=$(ROOT_DIR)/tmp/"$${i##*/}"-race.tar --tag $$i-ci:$(GIT_COMMIT_VERSION)-race . ; \
+		echo "$${i##*/} image-tar build success, path: $(ROOT_DIR)/tmp/$${i##*/}-race.tar" ; \
 	done
 
 .PHONY: load-image-to-kind
 load-image-to-kind:
 	@echo "Load Image to kind..."
-	@for i in $(IMAGE_NAMES); do \
-        cat /tmp/$$i-race.tar | docker import - $(REGISTER)/$(GIT_REPO)/$$i-ci:$(GIT_COMMIT_VERSION)-race; \
-    	kind load docker-image $(REGISTER)/$(GIT_REPO)/$$i-ci:$(GIT_COMMIT_VERSION)-race --name $(E2E_CLUSTER_NAME);	\
+	@for i in $(IMAGES); do \
+        cat $(ROOT_DIR)/tmp/"$${i##*/}"-race.tar | docker import - $$i-ci:$(GIT_COMMIT_VERSION)-race; \
+    	kind load docker-image $$i-ci:$(GIT_COMMIT_VERSION)-race --name $(E2E_CLUSTER_NAME);	\
     done;
 
 #=============apply-chart=================#
 .PHONY: apply-chart-to-kind
 apply-chart-to-kind:
 	helm install $(RELEASE_NAME) charts/spiderpool \
-    --set spiderpoolAgent.image.repository=$(REGISTER)/$(GIT_REPO)/$(SPIDER_AGENT)-ci \
+    --set spiderpoolAgent.image.repository=$(REGISTER)/$(GIT_REPO)/spiderpool-agent-ci \
 	--set spiderpoolAgent.image.tag=$(GIT_COMMIT_VERSION)-race \
-	--set spiderpoolController.image.repository=$(REGISTER)/$(GIT_REPO)/$(SPIDER_CONTROLLER)-ci \
-	--set spiderpoolController.image.tag=$(GIT_COMMIT_VERSION)-race --kubeconfig $(HOME)/kind/$(E2E_CLUSTER_NAME)/.kube/config
+	--set spiderpoolController.image.repository=$(REGISTER)/$(GIT_REPO)/spiderpool-controller-ci \
+	--set spiderpoolController.image.tag=$(GIT_COMMIT_VERSION)-race --kubeconfig $(E2E_KUBECONFIG)
 
 clean:
 	-$(QUIET) for i in $(SUBDIRS); do $(MAKE) $(SUBMAKEOPTS) -C $$i clean; done
@@ -167,6 +168,9 @@ unitest-tests: check_test_label
 		-vv  -r $(ROOT_DIR)/pkg $(ROOT_DIR)/cmd
 	$(QUIET) go tool cover -html=./coverage.out -o coverage-all.html
 
+.PHONY: e2e
+e2e:
+	make -C test e2e
 .PHONY: manifests
 manifests:
 	@echo "Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects."
@@ -272,3 +276,4 @@ openapi-ui:	## set up swagger-ui in local.
 		-v $(CURDIR)/api/v1/agent/openapi.yaml:/foo/agent-swagger.yml \
 		-v $(CURDIR)/api/v1/controller/openapi.yaml:/foo/controller-swagger.yml \
 		swaggerapi/swagger-ui
+

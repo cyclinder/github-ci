@@ -8,6 +8,7 @@
       "mode": "bridge",
       "master": "eth0",
       "ipam": {
+           {%- if type == "whereabouts" %}
            "type": "{{ type }}",
            "range": "172.18.0.0/16",
            "range_start": "172.18.0.100",
@@ -18,6 +19,9 @@
            "routes": [
                { "dst": "0.0.0.0/0" }
            ]
+           {%- else %}
+           "type": "{{ type }}"
+           {%- endif %}
        }
     }
   ]
