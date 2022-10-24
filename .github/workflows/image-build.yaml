@@ -85,7 +85,7 @@ jobs:
           file: ./images/Dockerfile
           github-token: ${{ secrets.WELAN_PAT }}
           platforms: ${{ env.BUILD_PLATFORM }}
-          outputs: type=tar,dest=/tmp/images.tar
+          outputs: type=tar,dest=/tmp/images.tar,type=docker
           build-args: |
             GIT_COMMIT_VERSION=${{ steps.arg.outputs.commitver }}
             GIT_COMMIT_TIME=${{ steps.arg.outputs.committime }}
@@ -103,4 +103,5 @@ jobs:
         if: ${{ steps.tag.outputs.push != 'true' }}
         run: |
           docker images
-          make lint_image_trivy -e IMAGE_NAME=/tmp/images.tar
+          ls /tmp
+          make lint_image_trivy -e IMAGE_NAME=ghcr.io/${{ github.repository }}/meta-plugins:${{ steps.tag.outputs.version }}
