@@ -76,7 +76,6 @@ jobs:
           registry: ${{ env.ONLINE_REGISTER }}
 
       - name: Build container image and push
-        if: ${{ steps.tag.outputs.push == 'true' }}
         uses: docker/build-push-action@v2
         with:
           context: ./
@@ -92,7 +91,6 @@ jobs:
             VERSION=${{ steps.tag.outputs.tag }}
 
       - name: Upload artifact e2e image tar
-        if: ${{ github.event_name == 'pull_request_target' }}
         uses: actions/upload-artifact@v3.1.0
         with:
           name: image-e2e-tar
