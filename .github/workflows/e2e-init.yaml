@@ -1,4 +1,4 @@
-name: call e2e kind init
+name: call e2e
 
 env:
   CI_IMAGE_REPO: ghcr.io/spidernet-io/cni-plugins/meta-plugins
@@ -19,13 +19,12 @@ on:
 jobs:
   call_e2e:
     runs-on: ubuntu-latest
-    if: ${{ needs.get_ref.outputs.run_e2e == 'true' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
         with:
           persist-credentials: false
-          ref: ${{ needs.get_ref.outputs.ref }}
+          ref: ${{ inputs.ref }}
 
       - name: Setup Golang
         uses: actions/setup-go@v3
@@ -56,43 +55,39 @@ jobs:
           echo $TAR_FILES
           for ITEM in ${TAR_FILES} ; do
               IMAGE_NAME=${ITEM%*.tar}
-              cat .tmp/${ITEM} |  docker import - ghcr.io/${{ github.repository }}/meta-plugins:${{ needs.get_ref.outputs.tag }}
+              cat .tmp/${ITEM} |  docker import - ghcr.io/${{ github.repository }}/meta-plugins:${{ inputs.tag }}
           done
 
       - name: Setup Kind Cluster For Dual-stack
-        if: ${{ needs.get_ref.outputs.run_e2e == 'true' }}
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 10
           max_attempts: 3
           shell: bash
           command: |
-            make -C test kind_init IP_FAMILY=${{ needs.get_ref.outputs.ip_family }} RUN_ON_LOCAL=false
+            make -C test kind_init IP_FAMILY=${{ inputs.ip_family }} RUN_ON_LOCAL=false
 
       - name: Load ci image to kind
-        if: ${{ needs.get_ref.outputs.run_e2e == 'true' }}
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 10
           max_attempts: 3
           shell: bash
           command: |
-            kind load docker-image ghcr.io/${{ github.repository }}/meta-plugins:${{ needs.get_ref.outputs.tag }} --name dual
+            kind load docker-image ghcr.io/${{ github.repository }}/meta-plugins:${{ inputs.tag }} --name ${{ inputs.ip_family }}
 
       - name: Install
         id: install
-        if: ${{ needs.get_ref.outputs.run_e2e == 'true' }}
         continue-on-error: true
         run: |
-          make -C test install IP_FAMILY=${{ needs.get_ref.outputs.ip_family }}  \
-             META_PLUGINS_CI_TAG=ghcr.io/${{ github.repository }}/meta-plugins:${{ needs.get_ref.outputs.tag }}
+          make -C test install IP_FAMILY=${{ inputs.ip_family }}  \
+             META_PLUGINS_CI_TAG=ghcr.io/${{ github.repository }}/meta-plugins:${{ inputs.tag }}
              DEFAULT_CNI=k8s-pod-network
 
       - name: Setting vlan interface and create remote's client container
-        if: ${{ needs.get_ref.outputs.run_e2e == 'true' }}
         id: vlan
         run:
-          make -C test vlan IP_FAMILY=${{ needs.get_ref.outputs.ip_family }}
+          make -C test vlan IP_FAMILY=${{ inputs.ip_family }}
 
       - name: update apt-get sources_repo
         id: sources_repo
@@ -101,8 +96,7 @@ jobs:
 
       - name: Run E2E For Dual-Stack
         id: dual
-        if: ${{ needs.get_ref.outputs.run_e2e == 'true' }}
         continue-on-error: true
         run: |
             RESULT=0
-            make -C test e2e IP_FAMILY=${{ needs.get_ref.outputs.ip_family }}
+            make -C test e2e IP_FAMILY=${{ inputs.ip_family }}
