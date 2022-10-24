@@ -29,14 +29,15 @@ test:
 lint_image_trivy: IMAGE_NAME ?=
 lint_image_trivy:
 	@ [ -n "$(IMAGE_NAME)" ] || { echo "error, please input IMAGE_NAME" && exit 1 ; }  ; \
- 	if [ "${${IMAGE_NAME}##*.}"x == "tar"x ]; then  \
-		docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-			  -v /tmp/trivy:/root/trivy.cache/  \
-			  aquasec/trivy:latest image --exit-code 1  --severity $(LINT_TRIVY_SEVERITY_LEVEL)  --input $(IMAGE_NAME) ;\
- 	else  \
+ 	IS_TAR_FILE=` echo $(IMAGE_NAME) | egrep \.tar$ ` ; \
+ 	if [ -n "$${IS_TAR_FILE}" ]; then  \
 		docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
 			  -v /tmp/trivy:/root/trivy.cache/  \
 			  aquasec/trivy:latest image --exit-code 1  --severity $(LINT_TRIVY_SEVERITY_LEVEL)  $(IMAGE_NAME) ;\
+ 	else  \
+		docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+			  -v /tmp/trivy:/root/trivy.cache/  \
+			  aquasec/trivy:latest image --exit-code 1  --severity $(LINT_TRIVY_SEVERITY_LEVEL)  --input $(IMAGE_NAME) ;\
  	fi
 
 
