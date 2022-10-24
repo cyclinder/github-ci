@@ -54,9 +54,8 @@ jobs:
           name: image-e2e-tar
           path: .tmp
 
-      - name: Load Image to kind
+      - name: Load Image to docker
         run: |
-          ls .tmp
           cat .tmp/ci-images.tar |  docker import - ghcr.io/${{ github.repository }}/meta-plugins:${{ inputs.ref }}
 
       - name: Setup Kind Cluster For Dual-stack
