@@ -101,5 +101,5 @@ jobs:
         if: ${{ steps.tag.outputs.push != 'true' }}
         run: |
           docker images
-          ls /tmp
+          ls /tmp/images.tar
           make lint_image_trivy -e IMAGE_NAME=/tmp/images.tar
