@@ -94,7 +94,6 @@ jobs:
         if: ${{ steps.tag.outputs.push != 'true' }}
         run: |
           docker images
-          ll /tmp/images.tar
           make lint_image_trivy -e IMAGE_NAME=/tmp/images.tar
 
       - name: Upload artifact e2e image tar
