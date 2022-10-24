@@ -85,7 +85,6 @@ jobs:
           file: ./images/Dockerfile
           github-token: ${{ secrets.WELAN_PAT }}
           platforms: ${{ env.BUILD_PLATFORM }}
-          outputs: type=docker
           build-args: |
             GIT_COMMIT_VERSION=${{ steps.arg.outputs.commitver }}
             GIT_COMMIT_TIME=${{ steps.arg.outputs.committime }}

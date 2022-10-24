@@ -90,7 +90,7 @@ jobs:
 
   call_e2e_dual:
     needs: [call_build_e2e_image]
-    if: ${{ needs.get_ref.outputs.run_e2e == 'true' }}
+    # if: ${{ needs.get_ref.outputs.run_e2e == 'true' }}
     uses: ./.github/workflows/e2e-init.yaml
     with:
       ip_family: dual
