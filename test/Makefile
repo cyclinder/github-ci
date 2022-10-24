@@ -1,56 +1,74 @@
-include ../Makefile.defs Makefile.defs
+include Makefile.defs
 
-WHEREABOUTS_IMAGE=ghcr.io/k8snetworkplumbingwg/whereabouts:latest-amd64
-IMAGE_NAMES := spiderpool-agent spiderpool-controller
+.PHONY: test
+test: kind-init vlan install e2e
 
-.PHONY: all
-all: usage
+.PHONY: vlan
+vlan:
+	export VLAN_GATEWAY_CONTAINER=${VLAN_GATEWAY_CONTAINER} ; \
+	export IP_FAMILY=${IP_FAMILY} ; \
+	bash scripts/network-config.sh
 
-#============ kind-e2e ====================
 .PHONY: e2e
-e2e:  kind-init e2e-test
+e2e:
+	export E2E_KUBECONFIG_PATH=${E2E_KUBECONFIG}; [ -f "$${E2E_KUBECONFIG_PATH}" ] || { echo "error, does not exist KUBECONFIG: ${E2E_KUBECONFIG_PATH}" ; exit 1 ; } ; \
+	export E2E_CLUSTER_NAME=${IP_FAMILY} ; \
+	export VLAN_GATEWAY_CONTAINER=${VLAN_GATEWAY_CONTAINER} ; \
+	NODE_LIST="` docker ps | egrep " kindest/node.* $(IP_FAMILY)-(control|worker)" | awk '{print $$1 }' ` "; \
+	[ -n "$$NODE_LIST" ] || { echo "error, failed to find any kind nodes, please setup kind cluster $(E2E_CLUSTER_NAME) first" ; exit 1 ; } ; \
+	NODE_LIST=` echo "$${NODE_LIST}" | tr -d ' ' | tr '\n' ',' ` ; \
+	NODE_LIST=$${NODE_LIST%%,} ; \
+	echo "find cluster node: $${NODE_LIST}" ; \
+	export E2E_KIND_CLUSTER_NODE_LIST="$${NODE_LIST}" ; \
+	if [ "$(IP_FAMILY)" == "ipv4" ] ; then \
+		export E2E_IPV4_ENABLED=true ; export E2E_IPV6_ENABLED=false ; \
+	elif [ "$(IP_FAMILY)" == "ipv6" ] ; then \
+		export E2E_IPV4_ENABLED=false ; export E2E_IPV6_ENABLED=true ; \
+	else \
+		export E2E_IPV4_ENABLED=true ; export E2E_IPV6_ENABLED=true ; \
+	fi ; \
+	ginkgo --race --timeout=${E2E_TIMEOUT} --output-interceptor-mode=none --json-report e2ereport.json --output-dir ${ROOT_DIR}/../.tmp \
+	 --label-filter="${E2E_GINKGO_LABELS}"  -randomize-suites -randomize-all  -vv --fail-fast ${E2E_GINKGO_OPTIONS} -r e2e/*
 
-.PHONY: kind-init
-kind-init: kind-clean prepare
-	$(QUIET)@echo "Install kind cluster..."
-	@mkdir -p -v $(ROOT_DIR)/test/.tmp/$(E2E_CLUSTER_NAME)
-	$(QUIET)kube_proxy_mode=$(E2E_KUBE_PROXY_MODE) ip_family=$(E2E_IP_FAMILY) singe_node=$(E2E_SINGE_NODE) kind_image_tag=$(E2E_KIND_IMAGE_TAG) disable_default_cni=$(E2E_DISABLE_DEFAULT_CNI) p2ctl -t $(ROOT_DIR)/test/yamls/kind-config.tmpl > $(ROOT_DIR)/test/.tmp/$(E2E_CLUSTER_NAME)/kind-config.yaml
-	$(QUIET)@cat $(ROOT_DIR)/test/.tmp/$(E2E_CLUSTER_NAME)/kind-config.yaml
-	kind create cluster --config $(ROOT_DIR)/test/.tmp/$(E2E_CLUSTER_NAME)/kind-config.yaml --name $(E2E_CLUSTER_NAME) --kubeconfig $(E2E_KUBECONFIG)
-ifeq ($(INSTALL_MACVLAN)_$(INSTALL_WHEREABOUTS),true_true)
-	$(QUIET)@echo "Install macvlan + whereabouts"
-	$(QUIET)bash scripts/install-whereabouts.sh $(E2E_CLUSTER_NAME) $(E2E_KUBECONFIG)
-	type=whereabouts p2ctl -t yamls/10-macvlan.tmpl > $(ROOT_DIR)/test/.tmp/$(E2E_CLUSTER_NAME)/10-macvlan.conflist
-endif
-ifeq ($(INSTALL_MACVLAN)_$(INSTALL_SPIDER),true_true)
-	$(QUIET) echo "Install macvlan + spiderpool"
-	type=spiderpool p2ctl -t yamls/10-macvlan.tmpl > $(ROOT_DIR)/test/.tmp/$(E2E_CLUSTER_NAME)/10-macvlan.conflist
-	$(MAKE) -C $(ROOT_DIR) install
-endif
-	$(QUIET)@bash scripts/cni-install.sh $(E2E_CLUSTER_NAME) $(ROOT_DIR)
-	$(QUIET)@bash scripts/install-macvlan.sh $(E2E_CLUSTER_NAME) $(ROOT_DIR)/test/.tmp/$(E2E_CLUSTER_NAME)/10-macvlan.conflist
-	@kubectl get nodes --kubeconfig $(E2E_KUBECONFIG) > /dev/null 2>&1 || echo "failed to setup cluster"
-	@echo "Please use: kubectl get nodes --kubeconfig $(E2E_KUBECONFIG) "
+.PHONY: install
+install:
+	echo -e "  \033[35m Start install network-component: \033[0m" ; \
+	if [ ! -f ${E2E_KUBECONFIG} ]; then echo "can't found ${E2E_KUBECONFIG}, please provide the right kubeconfig path using env E2E_KUBECONFIG" && exit 1; fi ; \
+	export CLUSTER_POD_SUBNET_V4=${CLUSTER_POD_SUBNET_V4}; \
+    export CLUSTER_POD_SUBNET_V6=${CLUSTER_POD_SUBNET_V6}; \
+    export CLUSTER_SERVICE_SUBNET_V4=${CLUSTER_SERVICE_SUBNET_V4}; \
+    export CLUSTER_SERVICE_SUBNET_V6=${CLUSTER_SERVICE_SUBNET_V6}; \
+	export CALICO_VERSION=${CALICO_VERSION}; \
+	export E2E_KUBECONFIG=${E2E_KUBECONFIG}; \
+	export IP_FAMILY=${IP_FAMILY} ; \
+	export DEFAULT_CNI=${DEFAULT_CNI} ; \
+	export VLAN_GATEWAY_CONTAINER=${VLAN_GATEWAY_CONTAINER} ; \
+	export CNI_PLUGINS_VERSION=${CNI_PLUGINS_VERSION} ; \
+	export RUN_ON_LOCAL=${RUN_ON_LOCAL} ; \
+	for script in `ls scripts/install/` ; do \
+	  echo "Running $${script}"  ; \
+	  chmod +x scripts/install/$${script} ; \
+	  bash scripts/install/$${script} || { echo "failed to run scripts/install/$${script} "; exit 1 ; } ; \
+	done
 
-.PHONY: kind-clean
-kind-clean:
-	@echo "Cleanup kind cluster"
-	rm -rf $(ROOT_DIR)/test/.tmp
-	kind delete cluster --name $(E2E_CLUSTER_NAME)
 
-.PHONY: prepare
-prepare:
-	$(QUEIT) @bash scripts/prepare.sh $(ROOT_DIR)
+.PHONY: init
+kind-init:
+	export IP_FAMILY=${IP_FAMILY} ; \
+	export KIND_NODE_TAG=${K8S_VERSION} ; \
+	bash scripts/kind.sh
 
-#============ e2e ====================
-.PHONY: e2e-test
-e2e-test:
-	$(QUIET)@echo "Run E2E"
-	$(QUIET) $(ROOT_DIR)/tools/scripts/ginkgo.sh  --race --label-filter="$(E2E_GINKGO_LABELS)" -r e2e/* -- --ipFamily=$(E2E_IP_FAMILY) --kubeconfig=$(E2E_KUBECONFIG)
-usage:
-	@echo "usage:"
-	@echo -e "  \033[35m make prepare \033[0m:       --- Check some required tools is exist like docker/helm.etc and download cni-plugins"
-	@echo -e "  \033[35m make init \033[0m:          --- Setup a kind cluster, Such as: kind-init E2E_CLUSTER_NAME=spider,More config refer to Makefile.defs(e2e-kind-config)"
-	@echo -e "  \033[35m make e2e-test \033[0m:      --- Ginkgo test,Such as: make e2e-test, More config refer to Makefile.defs(e2e-kind-config)"
-	@echo -e "  \033[35m make kind-clean \033[0m:    --- Clean kind cluster and some config file, Such as: make kind-clean E2E_CLUSTER_NAME=spider"
-	@echo -e "  \033[35m make e2e \033[0m:           --- prepare -> kind-init -> e2e-test "
+.PHONY: update-repo
+update-repo:
+	@NODE_LIST=` docker ps | egrep " kindest/node.* $(IP_FAMILY)-(control|worker)" | awk '{print $$1 }' ` ; \
+	[ -n "$$NODE_LIST" ] || { echo "error, failed to find any kind nodes, please setup kind cluster $(IP_FAMILY) first" ; exit 1 ; } ; \
+	for NODE in $${NODE_LIST} ; do \
+	  docker cp scripts/update_repo.sh $${NODE}:/home/ ; \
+	  docker exec $${NODE} chmod +x /home/update_repo.sh ; \
+	  docker exec $${NODE} ./home/update_repo.sh ; \
+	done
+
+.PHONY: clean
+clean:
+	kind delete cluster ${IP_FAMILY}
+	rm -rf ../.tmp/

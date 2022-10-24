@@ -1,24 +1,24 @@
-#============ e2e-kind-config ====================
-# iptables or ipvs, default iptables
-E2E_KUBE_PROXY_MODE ?= iptables
-# ipv4 or ipv6 or dual, default ipv4
-E2E_IP_FAMILY ?= ipv4
-# true is one node cluster, false is three node cluster, default true
-E2E_SINGE_NODE ?= true
-# kubernetes version, default v1.22.1
-E2E_KIND_IMAGE_TAG ?= v1.22.1
-# disable default cni, default true
-E2E_DISABLE_DEFAULT_CNI ?= true
-INSTALL_MACVLAN ?= true
-INSTALL_WHEREABOUTS ?= true
-INSTALL_SPIDER ?= false
-INSTALL_MULTUS ?= false
+ROOT_DIR = $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+CALICO_VERSION ?= v3.24.0
+CLUSTER_POD_SUBNET_V4 := 10.244.0.0/16
+CLUSTER_POD_SUBNET_V6 := fd00:10:244::/56
+CLUSTER_SERVICE_SUBNET_V4 := 10.96.0.0/16
+CLUSTER_SERVICE_SUBNET_V6 := fd00:10:96::/112
+E2E_KUBECONFIG := ${ROOT_DIR}/../.tmp/config/.kube/config
+IP_FAMILY ?= dual
+DEFAULT_CNI ?= k8s-pod-network
+K8S_VERSION ?= v1.25.0
 
-#============ ginkgo-custom-flag ====================
-E2E_KUBECONFIG = $(ROOT_DIR)/test/.tmp/$(E2E_CLUSTER_NAME)/.kube/config
-E2E_CLUSTER_NAME ?= spider
-# multi flag separated by commas,like setup,ippool
-E2E_GINKGO_LABELS ?=
+# Multus
+MULTUS_FIRST_VLAN=0
+MULTUS_SECOND_VLAN=100
 
-#=============http_proxy=============
-http_proxy ?=
+VLAN_GATEWAY_CONTAINER="vlan-gateway"
+
+E2E_TIMEOUT ?= 60m
+
+CNI_PLUGINS_VERSION=v1.1.1
+
+# proxy
+RUN_ON_LOCAL=false
+
