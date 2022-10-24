@@ -90,6 +90,13 @@ jobs:
             GIT_COMMIT_TIME=${{ steps.arg.outputs.committime }}
             VERSION=${{ steps.tag.outputs.tag }}
 
+      - name: Scan Image
+        if: ${{ steps.tag.outputs.push != 'true' }}
+        run: |
+          docker images
+          ll /tmp/images.tar
+          make lint_image_trivy -e IMAGE_NAME=/tmp/images.tar
+
       - name: Upload artifact e2e image tar
         uses: actions/upload-artifact@v3.1.0
         with:
@@ -97,9 +104,3 @@ jobs:
           path: /tmp/images.tar
           retention-days: 1
 
-      - name: Scan Image
-        if: ${{ steps.tag.outputs.push != 'true' }}
-        run: |
-          docker images
-          ls /tmp/images.tar
-          make lint_image_trivy -e IMAGE_NAME=/tmp/images.tar
