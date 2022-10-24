@@ -31,7 +31,7 @@ lint_image_trivy:
 	@ [ -n "$(IMAGE_NAME)" ] || { echo "error, please input IMAGE_NAME" && exit 1 ; }
 	@ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
  		  -v /tmp/trivy:/root/trivy.cache/  \
-          aquasec/trivy:latest image --exit-code 1  --severity $(LINT_TRIVY_SEVERITY_LEVEL)  $(IMAGE_NAME)
+          aquasec/trivy:latest image --exit-code 1  --severity $(LINT_TRIVY_SEVERITY_LEVEL)  --input $(IMAGE_NAME)
 
 
 .PHONY: lint_chart_trivy
