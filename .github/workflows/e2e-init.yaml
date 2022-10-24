@@ -34,7 +34,7 @@ jobs:
 
       - name: Install Ginkgo
         run:
-          go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.3
+          go install github.com/onsi/ginkgo/v2/ginkgo@v2.4.0 ;
           ginkgo version
 
       # https://github.com/helm/kind-action
