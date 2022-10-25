@@ -13,7 +13,7 @@ PROJECT_ROOT_PATH=$( cd ${CURRENT_DIR_PATH}/../../.. && pwd )
 DEFAULT_CNI=${DEFAULT_CNI:-calico}
 CILIUM_VERSION=${CILIUM_VERSION:-v0.12.0}
 
-[ -z ${INSTALL_TIME_OUT} ] ; then INSTALL_TIME_OUT=600s ; fi
+[ -z "${INSTALL_TIME_OUT}" ] && INSTALL_TIME_OUT=600s
 
 export CALICO_VERSION=v3.24.0
 if [ ${RUN_ON_LOCAL} == "true" ]; then
