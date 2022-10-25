@@ -18,10 +18,10 @@ SPIDERPOOL_VLAN100_GATEWAY_V6=fd00:172:100::1
 
 [ -z ${INSTALL_TIME_OUT} ] && INSTALL_TIME_OUT=600s
 
-SPIDERPOL_HELM_OPTIONS=""
+SPIDERPOOL_HELM_OPTIONS=""
 case ${IP_FAMILY} in
   ipv4)
-    SPIDERPOL_HELM_OPTIONS+=" --set spiderpool.feature.enableIPv4=true \
+    SPIDERPOOL_HELM_OPTIONS+=" --set spiderpool.feature.enableIPv4=true \
     --set spiderpool.feature.enableSpiderSubnet=false \
     --set spiderpool.clusterDefaultPool.installIPv4IPPool=true \
     --set spiderpool.clusterDefaultPool.ipv4Subnet=${SPIDERPOOL_DEFAULT_POOL_V4} \
@@ -29,7 +29,7 @@ case ${IP_FAMILY} in
     --set spiderpool.clusterDefaultPool.ipv4Gateway=${SPIDERPOOL_DEFAULT_GATEWAY_V4}"
     ;;
   ipv6)
-    SPIDERPOL_HELM_OPTIONS+=" --set spiderpool.feature.enableIPv4=false \
+    SPIDERPOOL_HELM_OPTIONS+=" --set spiderpool.feature.enableIPv4=false \
     --set spiderpool.feature.enableSpiderSubnet=false \
     --set spiderpool.feature.enableIPv6=true \
     --set spiderpool.clusterDefaultPool.installIPv4IPPool=false \
@@ -39,7 +39,7 @@ case ${IP_FAMILY} in
     --set spiderpool.clusterDefaultPool.ipv6Gateway=${SPIDERPOOL_DEFAULT_GATEWAY_V6}"
     ;;
   dual)
-    SPIDERPOL_HELM_OPTIONS+=" --set spiderpool.feature.enableIPv4=true \
+    SPIDERPOOL_HELM_OPTIONS+=" --set spiderpool.feature.enableIPv4=true \
     --set spiderpool.feature.enableIPv6=true \
     --set spiderpool.feature.enableSpiderSubnet=false \
     --set spiderpool.clusterDefaultPool.installIPv4IPPool=true \
@@ -56,11 +56,11 @@ case ${IP_FAMILY} in
     exit 1
 esac
 
-echo "SPIDERPOOL_HELM_OPTIONS: ${SPIDERPOL_HELM_OPTIONS}"
+echo "SPIDERPOOL_HELM_OPTIONS: ${SPIDERPOOL_HELM_OPTIONS}"
 
 helm repo add daocloud https://daocloud.github.io/network-charts-repackage/
 
-HELM_IMAGES_LIST=` helm template test daocloud/spiderpoool --version ${SPIDERPOOL_VERSION} ${SPIDERPOL_HELM_OPTIONS} | grep " image: " | tr -d '"'| awk '{print $2}' `
+HELM_IMAGES_LIST=` helm template test daocloud/spiderpool --version ${SPIDERPOOL_VERSION} ${SPIDERPOL_HELM_OPTIONS} | grep " image: " | tr -d '"'| awk '{print $2}' `
 
 [ -z "${HELM_IMAGES_LIST}" ] && echo "can't found image of spiderpool" && exit 1
 LOCAL_IMAGE_LIST=`docker images | awk '{printf("%s:%s\n",$1,$2)}'`
@@ -81,7 +81,7 @@ for IMAGE in ${HELM_IMAGES_LIST}; do
 done
 
 # Install spiderpool
-helm install spiderpool daocloud/spiderpool -n kube-system --kubeconfig ${E2E_KUBECONFIG} ${SPIDERPOOL_HELM_OPTIONS} --version ${SPIDERPOOL_VERSION}
+helm install spiderpool daocloud/spiderpool --wait -n kube-system --kubeconfig ${E2E_KUBECONFIG} ${SPIDERPOOL_HELM_OPTIONS} --version ${SPIDERPOOL_VERSION}
 kubectl wait --for=condition=ready -l app.kubernetes.io/name=spiderpool --timeout=${INSTALL_TIME_OUT} pod -n kube-system \
 --kubeconfig ${E2E_KUBECONFIG}
 

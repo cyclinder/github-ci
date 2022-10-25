@@ -87,7 +87,6 @@ helm install multus-underlay daocloud/multus-underlay -n kube-system  --kubeconf
 sleep 10
 
 kubectl get po -n kube-system --kubeconfig ${E2E_KUBECONFIG}
-kubectl describe po -n kube-system -l app.kubernetes.io/instance=multus-underlay --kubeconfig ${E2E_KUBECONFIG}
 
 # wait multus-ready
 kubectl wait --for=condition=ready -l app.kubernetes.io/instance=multus-underlay --timeout=${INSTALL_TIME_OUT} pod -n kube-system --kubeconfig ${E2E_KUBECONFIG}
