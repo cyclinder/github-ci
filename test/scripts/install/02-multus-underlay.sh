@@ -21,6 +21,7 @@ MULTUS_HELM_OPTIONS=" --set multus.config.cni_conf.clusterNetwork=${DEFAULT_CNI}
 --set macvlan.type=${MACVLAN_TYPE} \
 --set macvlan.name=macvlan-overlay-vlan0 \
 --set sriov.sriov_crd.vlanId=500 \
+--set meta-plugins.image.tag=latest \
 --set sriov.manifests.enable=true
 "
 
@@ -58,6 +59,20 @@ fi
 echo "MULTUS_HELM_OPTIONS: ${MULTUS_HELM_OPTIONS}"
 
 helm repo add daocloud https://daocloud.github.io/network-charts-repackage/
+# prepare image
+
+IMAGES_LIST=` helm template test daocloud/multus-underlay --version ${MULTUS_UNDERLAY_VERSION} ${MULTUS_HELM_OPTIONS} | grep " image: " | tr -d '"'| awk '{print $2}' `
+[ -z "${IMAGES_LIST}" ] && echo "warning, failed to find image from chart template for multus-underlay" && exit 1
+for IMAGE in ${IMAGES_LIST} ; do
+  EXIST=` docker images | awk '{printf("%s:%s\n",$$1,$$2)}' | grep "${IMAGE}" `
+  if [ -z "${EXIST}" ] ; then
+    echo "docker pull ${IMAGE} to local"
+    docker pull ${IMAGE}
+  fi
+  echo "kind load local image ${IMAGE} to kind" ; \
+  kind load docker-image ${IMAGE} --name $(IP_FAMILY)  ; \
+done
+
 # helm repo update daocloud
 helm install multus-underlay daocloud/multus-underlay -n kube-system  --kubeconfig ${E2E_KUBECONFIG} ${MULTUS_HELM_OPTIONS} --version ${MULTUS_UNDERLAY_VERSION}
 
@@ -69,21 +84,6 @@ sleep 60s
 
 kubectl get po -n kube-system --kubeconfig ${E2E_KUBECONFIG}
 
-kubectl describe po -n kube-system -l app.kubernetes.io/instance=multus-underlay --kubeconfig ${E2E_KUBECONFIG}
-
-sleep 60s
-
-kubectl get po -n kube-system --kubeconfig ${E2E_KUBECONFIG}
-kubectl describe po -n kube-system -l app.kubernetes.io/instance=multus-underlay --kubeconfig ${E2E_KUBECONFIG}
-
-sleep 60s
-
-kubectl get po -n kube-system --kubeconfig ${E2E_KUBECONFIG}
-kubectl describe po -n kube-system -l app.kubernetes.io/instance=multus-underlay --kubeconfig ${E2E_KUBECONFIG}
-
-sleep 60s
-
-kubectl get po -n kube-system --kubeconfig ${E2E_KUBECONFIG}
 kubectl describe po -n kube-system -l app.kubernetes.io/instance=multus-underlay --kubeconfig ${E2E_KUBECONFIG}
 
 kubectl wait --for=condition=ready -l app.kubernetes.io/instance=multus-underlay --timeout=${INSTALL_TIME_OUT} pod -n kube-system --kubeconfig ${E2E_KUBECONFIG}
