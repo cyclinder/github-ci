@@ -2,6 +2,7 @@ name: call e2e
 
 env:
   CI_IMAGE_REPO: ghcr.io/spidernet-io/cni-plugins/meta-plugins
+  PERFORMANCESCRIPT: "./tools/scripts/e2eperformance.sh"
 
 on:
   workflow_call:
@@ -55,7 +56,7 @@ jobs:
 
       - name: Load Image to docker
         run: |
-          cat .tmp/ci-images.tar |  docker import - ghcr.io/${{ github.repository }}/meta-plugins:${{ inputs.ref }}
+          cat .tmp/ci-images.tar |  docker import - ghcr.io/${{ github.repository }}/meta-plugins-ci:latest
 
       - name: Setup Kind Cluster For Dual-stack
         run: |
@@ -69,14 +70,13 @@ jobs:
           max_attempts: 3
           shell: bash
           command: |
-            kind load docker-image ghcr.io/${{ github.repository }}/meta-plugins:${{ inputs.ref }} --name ${{ inputs.ip_family }}
+            kind load docker-image ghcr.io/${{ github.repository }}/meta-plugins-ci:latest --name ${{ inputs.ip_family }}
 
       - name: Install
         id: install
-        continue-on-error: true
         run: |
           make -C test install IP_FAMILY=${{ inputs.ip_family }}  \
-             META_PLUGINS_CI_TAG=ghcr.io/${{ github.repository }}/meta-plugins:${{ inputs.ref }}
+             META_PLUGINS_CI_REPO=ghcr.io/${{ github.repository }}/meta-plugins-ci \
              DEFAULT_CNI=k8s-pod-network
 
       - name: Setting vlan interface and create remote's client container

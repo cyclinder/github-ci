@@ -47,6 +47,7 @@ install:
 	export VLAN_GATEWAY_CONTAINER=${VLAN_GATEWAY_CONTAINER} ; \
 	export CNI_PLUGINS_VERSION=${CNI_PLUGINS_VERSION} ; \
 	export RUN_ON_LOCAL=${RUN_ON_LOCAL} ; \
+	export META_PLUGINS_CI_REPO=${META_PLUGINS_CI_REPO} ; \
 	for script in `ls scripts/install/` ; do \
 	  echo "Running $${script}"  ; \
 	  chmod +x scripts/install/$${script} ; \

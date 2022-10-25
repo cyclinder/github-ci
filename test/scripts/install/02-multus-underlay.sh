@@ -14,7 +14,6 @@ PROJECT_ROOT_PATH=$( cd ${CURRENT_DIR_PATH}/../.. && pwd )
 MULTUS_UNDERLAY_VERSION=${MULTUS_UNDERLAY_VERSION:-v0.1.3}
 MACVLAN_MASTER=${MACVLAN_MASTER:-eth0}
 MACVLAN_TYPE=${MACVLAN_TYPE:-macvlan-overlay}
-META_PLUGINS_CI_TAG=${META_PLUGINS_CI_TAG:-latest}
 
 MULTUS_HELM_OPTIONS=" --set multus.config.cni_conf.clusterNetwork=${DEFAULT_CNI} \
 --set macvlan.master=${MACVLAN_MASTER} \
@@ -22,8 +21,7 @@ MULTUS_HELM_OPTIONS=" --set multus.config.cni_conf.clusterNetwork=${DEFAULT_CNI}
 --set macvlan.type=${MACVLAN_TYPE} \
 --set macvlan.name=macvlan-overlay-vlan0 \
 --set sriov.sriov_crd.vlanId=500 \
---set sriov.manifests.enable=true \
---set meta-plugins.image.tag=${META_PLUGINS_CI_TAG}
+--set sriov.manifests.enable=true
 "
 
 case ${IP_FAMILY} in
@@ -54,7 +52,7 @@ esac
 if [ ${RUN_ON_LOCAL} == false ]; then
   MULTUS_HELM_OPTIONS+=" --set multus.image.repository=ghcr.io/k8snetworkplumbingwg/multus-cni \
   --set sriov.sriovCni.repository=ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin \
-  --set meta-plugins.image.repository=ghcr.io/spidernet-io/cni-plugins/meta-plugins"
+  --set meta-plugins.image.repository=${META_PLUGINS_CI_REPO}"
 fi
 
 echo "MULTUS_HELM_OPTIONS: ${MULTUS_HELM_OPTIONS}"
@@ -64,12 +62,25 @@ helm repo add daocloud https://daocloud.github.io/network-charts-repackage/
 helm install multus-underlay daocloud/multus-underlay -n kube-system --wait --kubeconfig ${E2E_KUBECONFIG} ${MULTUS_HELM_OPTIONS} --version ${MULTUS_UNDERLAY_VERSION}
 
 # wait multus-ready
-sleep 30s
-
-echo 123
+sleep 60s
 
 kubectl get po -n kube-system --kubeconfig ${E2E_KUBECONFIG}
 
+kubectl describe po -n kube-system -l app.kubernetes.io/instance=multus-underlay --kubeconfig ${E2E_KUBECONFIG}
+
+sleep 60s
+
+kubectl get po -n kube-system --kubeconfig ${E2E_KUBECONFIG}
+kubectl describe po -n kube-system -l app.kubernetes.io/instance=multus-underlay --kubeconfig ${E2E_KUBECONFIG}
+
+sleep 60s
+
+kubectl get po -n kube-system --kubeconfig ${E2E_KUBECONFIG}
+kubectl describe po -n kube-system -l app.kubernetes.io/instance=multus-underlay --kubeconfig ${E2E_KUBECONFIG}
+
+sleep 60s
+
+kubectl get po -n kube-system --kubeconfig ${E2E_KUBECONFIG}
 kubectl describe po -n kube-system -l app.kubernetes.io/instance=multus-underlay --kubeconfig ${E2E_KUBECONFIG}
 
 kubectl wait --for=condition=ready -l app.kubernetes.io/instance=multus-underlay --timeout=${INSTALL_TIME_OUT} pod -n kube-system --kubeconfig ${E2E_KUBECONFIG}

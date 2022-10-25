@@ -96,7 +96,7 @@ jobs:
         with:
           context: ./
           push: false
-          tags: ghcr.io/${{ github.repository }}/meta-plugins:${{ steps.tag.outputs.tag }}
+          tags: ghcr.io/${{ github.repository }}/meta-plugins:dev-latest
           file: ./images/Dockerfile
           github-token: ${{ secrets.WELAN_PAT }}
           platforms: linux/amd64
@@ -110,7 +110,7 @@ jobs:
         if: ${{ steps.tag.outputs.push != 'true' }}
         run: |
           docker images
-          # make lint_image_trivy -e IMAGE_NAME=ghcr.io/${{ github.repository }}/meta-plugins:${{ steps.tag.outputs.tag }}
+          # make lint_image_trivy -e IMAGE_NAME=ghcr.io/${{ github.repository }}/meta-plugins:dev-latest
           make lint_image_trivy -e IMAGE_NAME=/tmp/ci-images.tar
 
       - name: Upload artifact e2e image tar
