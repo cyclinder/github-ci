@@ -1,8 +1,6 @@
 #!/bin/bash
 
-set -o errexit -o nounset
-
-exit 0
+set -o errexit -o nounset -o xtrace
 
 CURRENT_FILENAME=$( basename $0 )
 CURRENT_DIR_PATH=$(cd $(dirname $0); pwd)

@@ -2,7 +2,6 @@
 
 set -o errexit -o nounset -o pipefail
 
-exit 0
 OS=$(uname | tr 'A-Z' 'a-z')
 SED_COMMAND=sed
 

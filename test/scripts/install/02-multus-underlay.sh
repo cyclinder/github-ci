@@ -8,20 +8,19 @@ PROJECT_ROOT_PATH=$( cd ${CURRENT_DIR_PATH}/../.. && pwd )
 
 [  -z "${IP_FAMILY}" ] &&  echo "must be provide IP_FAMILY by using env IP_FAMILY" && exit 1
 [  -z "${DEFAULT_CNI}" ] &&  echo "must be provide DEFAULT_CNI by using env DEFAULT_CNI" && exit 1
-[ -z ${INSTALL_TIME_OUT} ] ; then INSTALL_TIME_OUT=600s ; fi
+[ -z "${INSTALL_TIME_OUT}" ] && INSTALL_TIME_OUT=600s
 
 # Multus config
 MULTUS_UNDERLAY_VERSION=${MULTUS_UNDERLAY_VERSION:-v0.1.3}
-MACVLAN_VLANID=${MULTUS_FIRST_VLAN:-0}
 MACVLAN_MASTER=${MACVLAN_MASTER:-eth0}
 MACVLAN_TYPE=${MACVLAN_TYPE:-macvlan-overlay}
 META_PLUGINS_CI_TAG=${META_PLUGINS_CI_TAG:-latest}
 
 MULTUS_HELM_OPTIONS=" --set multus.config.cni_conf.clusterNetwork=${DEFAULT_CNI} \
 --set macvlan.master=${MACVLAN_MASTER} \
---set macvlan.vlanID=${MACVLAN_VLANID} \
+--set macvlan.vlanID=0 \
 --set macvlan.type=${MACVLAN_TYPE} \
---set macvlan.name=macvlan-overlay-vlan${MACVLAN_VLANID} \
+--set macvlan.name=macvlan-overlay-vlan0 \
 --set sriov.sriov_crd.vlanId=500 \
 --set sriov.manifests.enable=true \
 --set meta-plugins.image.tag=${META_PLUGINS_CI_TAG}
@@ -77,10 +76,10 @@ metadata:
     v1.multus-underlay-cni.io/default-cni: "true"
     v1.multus-underlay-cni.io/instance-type: macvlan_standalone
     v1.multus-underlay-cni.io/underlay-cni: "true"
-    v1.multus-underlay-cni.io/vlanId: "${MULTUS_SECOND_VLAN}"
+    v1.multus-underlay-cni.io/vlanId: "${MACVLAN_VLANID}"
   labels:
     v1.multus-underlay-cni.io/instance-status: enable
-  name: macvlan-standalone-vlan${MULTUS_SECOND_VLAN}
+  name: macvlan-standalone-vlan${MACVLAN_VLANID}
   namespace: kube-system
 spec:
   config: |-
@@ -90,7 +89,7 @@ spec:
         "plugins": [
             {
                 "type": "macvlan",
-                "master": "eth0.${MULTUS_SECOND_VLAN}",
+                "master": "eth0.${MACVLAN_VLANID}",
                 "mode": "bridge",
                 "ipam": {
                     "type": "spiderpool",
@@ -120,10 +119,10 @@ metadata:
     v1.multus-underlay-cni.io/default-cni: "false"
     v1.multus-underlay-cni.io/instance-type: macvlan_overlay
     v1.multus-underlay-cni.io/underlay-cni: "true"
-    v1.multus-underlay-cni.io/vlanId: "${MULTUS_SECOND_VLAN}"
+    v1.multus-underlay-cni.io/vlanId: "${MACVLAN_VLANID}"
   labels:
     v1.multus-underlay-cni.io/instance-status: enable
-  name: macvlan-overlay-vlan${MULTUS_SECOND_VLAN}
+  name: macvlan-overlay-vlan${MACVLAN_VLANID}
   namespace: kube-system
 spec:
   config: |-
@@ -133,7 +132,7 @@ spec:
         "plugins": [
             {
                 "type": "macvlan",
-                "master": "eth0.${MULTUS_SECOND_VLAN}",
+                "master": "eth0.${MACVLAN_VLANID}",
                 "mode": "bridge",
                 "ipam": {
                     "type": "spiderpool",

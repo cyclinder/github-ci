@@ -42,6 +42,7 @@ install:
 	export E2E_KUBECONFIG=${E2E_KUBECONFIG}; \
 	export IP_FAMILY=${IP_FAMILY} ; \
 	export DEFAULT_CNI=${DEFAULT_CNI} ; \
+	export MACVLAN_VLANID=100 ; \
 	export VLAN_GATEWAY_CONTAINER=${VLAN_GATEWAY_CONTAINER} ; \
 	export CNI_PLUGINS_VERSION=${CNI_PLUGINS_VERSION} ; \
 	export RUN_ON_LOCAL=${RUN_ON_LOCAL} ; \
@@ -51,8 +52,7 @@ install:
 	  bash scripts/install/$${script} || { echo "failed to run scripts/install/$${script} "; exit 1 ; } ; \
 	done
 
-
-.PHONY: init
+.PHONY: kind-init
 kind-init:
 	export IP_FAMILY=${IP_FAMILY} ; \
 	export KIND_NODE_TAG=${K8S_VERSION} ; \

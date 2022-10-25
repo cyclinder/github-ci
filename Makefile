@@ -22,7 +22,7 @@ lint-golang:
 
 .PHONY: test
 test:
-	make -C test/test
+	make -C test test
 
 
 .PHONY: lint_image_trivy

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -o errexit -o nounset -o pipefail
+set -o errexit -o nounset -o pipefail -o xtrace
 
 SPIDERPOOL_VERSION=${SPIDERPOOL_VERSION:-v0.2.0}
 SPIDERPOOL_DEFAULT_POOL_V4=172.18.0.0/16
@@ -67,7 +67,7 @@ cat <<EOF | kubectl --kubeconfig ${E2E_KUBECONFIG} apply -f -
 apiVersion: spiderpool.spidernet.io/v1
 kind: SpiderIPPool
 metadata:
-  name: vlan${MULTUS_SECOND_VLAN}-v4
+  name: vlan${MACVLAN_VLANID}-v4
 spec:
   disable: false
   gateway: ${SPIDERPOOL_VLAN100_GATEWAY_V4}
@@ -75,7 +75,7 @@ spec:
   ips:
   - ${SPIDERPOOL_VLAN100_RANGES_V4}
   subnet: ${SPIDERPOOL_VLAN100_POOL_V4}
-  vlan: 100
+  vlan: ${MACVLAN_VLANID}
 ---
 apiVersion: spiderpool.spidernet.io/v1
 kind: SpiderIPPool
@@ -88,5 +88,5 @@ spec:
   ips:
   - ${SPIDERPOOL_VLAN100_RANGES_V6}
   subnet: ${SPIDERPOOL_VLAN100_POOL_V6}
-  vlan: 100
+  vlan: ${MACVLAN_VLANID}
 EOF
