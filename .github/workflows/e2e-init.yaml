@@ -27,11 +27,6 @@ jobs:
           persist-credentials: false
           ref: ${{ inputs.ref }}
 
-      - name: test
-        run: |
-          echo ${{ inputs.ref }}
-          echo ${{ inputs.ip_family }}
-
       - name: Setup Golang
         uses: actions/setup-go@v3
         with:
@@ -56,7 +51,8 @@ jobs:
 
       - name: Load Image to docker
         run: |
-          cat .tmp/ci-images.tar |  docker import - ghcr.io/${{ github.repository }}/meta-plugins-ci:latest
+          echo "docker import"
+          # cat .tmp/ci-images.tar |  docker import - ghcr.io/${{ github.repository }}/meta-plugins-ci:latest
 
       - name: Setup Kind Cluster
         run: |
@@ -69,7 +65,7 @@ jobs:
           max_attempts: 3
           shell: bash
           command: |
-            kind load docker-image ghcr.io/${{ github.repository }}/meta-plugins-ci:latest --name ${{ inputs.ip_family }}
+            echo "kind load docker-image ghcr.io/${{ github.repository }}/meta-plugins-ci:latest --name ${{ inputs.ip_family }}"
 
       - name: Install
         id: install

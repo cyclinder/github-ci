@@ -2,7 +2,7 @@
 
 set -o errexit -o nounset -o pipefail -o xtrace
 
-SPIDERPOOL_VERSION=${SPIDERPOOL_VERSION:-v0.2.0}
+SPIDERPOOL_VERSION=${SPIDERPOOL_VERSION:-0.2.0}
 SPIDERPOOL_DEFAULT_POOL_V4=172.18.0.0/16
 SPIDERPOOL_DEFAULT_POOL_V6=fc00:f853:ccd:e793::/64
 SPIDERPOOL_IP_RANGES_V4=172.18.1.100-172.18.100.254
@@ -60,8 +60,28 @@ echo "SPIDERPOOL_HELM_OPTIONS: ${SPIDERPOL_HELM_OPTIONS}"
 
 helm repo add daocloud https://daocloud.github.io/network-charts-repackage/
 
+HELM_IMAGES_LIST=` helm template test daocloud/spiderpoool --version ${SPIDERPOOL_VERSION} ${SPIDERPOL_HELM_OPTIONS} | grep " image: " | tr -d '"'| awk '{print $2}' `
+
+[ -z "${HELM_IMAGES_LIST}" ] && echo "can't found image of spiderpool" && exit 1
+LOCAL_IMAGE_LIST=`docker images | awk '{printf("%s:%s\n",$1,$2)}'`
+
+for IMAGE in ${HELM_IMAGES_LIST}; do
+  found=false
+  for LOCAL_IMAGE in ${LOCAL_IMAGE_LIST}; do
+    if [ "${IMAGE}" == "${LOCAL_IMAGE}" ]; then
+        found=true
+    fi
+  done
+  if [ "${found}" == "false" ] ; then
+      echo "===> docker pull ${IMAGE}... "
+      docker pull ${IMAGE}
+  fi
+  echo "===> load image ${IMAGE} to kind..."
+  kind load docker-image ${IMAGE} --name ${IP_FAMILY}
+done
+
 # Install spiderpool
-helm install spiderpool daocloud/spiderpool -n kube-system --kubeconfig ${E2E_KUBECONFIG} ${SPIDERPOL_HELM_OPTIONS} --version ${SPIDERPOOL_VERSION}
+helm install spiderpool daocloud/spiderpool -n kube-system --kubeconfig ${E2E_KUBECONFIG} ${SPIDERPOOL_HELM_OPTIONS} --version ${SPIDERPOOL_VERSION}
 kubectl wait --for=condition=ready -l app.kubernetes.io/name=spiderpool --timeout=${INSTALL_TIME_OUT} pod -n kube-system \
 --kubeconfig ${E2E_KUBECONFIG}
 
@@ -82,7 +102,7 @@ spec:
 apiVersion: spiderpool.spidernet.io/v1
 kind: SpiderIPPool
 metadata:
-  name: VLAN100-v6
+  name: vlan100-v6
 spec:
   disable: false
   gateway: ${SPIDERPOOL_VLAN100_GATEWAY_V6}

@@ -73,6 +73,6 @@ update-repo:
 
 .PHONY: clean
 clean:
-	kind delete cluster ${IP_FAMILY}
-	docker rm -f {VLAN_GATEWAY_CONTAINER}
+	kind delete clusters ${IP_FAMILY}
+	docker rm -f ${VLAN_GATEWAY_CONTAINER}
 	rm -rf ../.tmp/

@@ -75,7 +75,26 @@ for env in ${ENV_LIST}; do
     ${SED_COMMAND} -i "s/<<${KEY}>>/${VALUE}/g" ${PROJECT_ROOT_PATH}/.tmp/config/calico.yaml
 done
 
+
+CALICO_IMAGE_LIST=`cat ${PROJECT_ROOT_PATH}/.tmp/config/calico.yaml | grep 'image: ' | tr -d '"' | awk '{print $2}'`
+[ -z "${CALICO_IMAGE_LIST}" ] && echo "can't found image of calico" && exit 1
+LOCAL_IMAGE_LIST=`docker images | awk '{printf("%s:%s\n",$1,$2)}'`
+
+for CALICO_IMAGE in ${CALICO_IMAGE_LIST}; do
+  found=false
+  for LOCAL_IMAGE in ${LOCAL_IMAGE_LIST}; do
+    if [ "${CALICO_IMAGE}" == "${LOCAL_IMAGE}" ]; then
+        found=true
+    fi
+  done
+  if [ "${found}" == "false" ] ; then
+      echo "===> docker pull ${CALICO_IMAGE} "
+      docker pull ${CALICO_IMAGE}
+  fi
+  echo "===> load image ${CALICO_IMAGE} to kind..."
+  kind load docker-image ${CALICO_IMAGE} --name ${IP_FAMILY}
+done
+
 kubectl apply -f  ${PROJECT_ROOT_PATH}/.tmp/config/calico.yaml --kubeconfig ${E2E_KUBECONFIG}
 kubectl wait --for=condition=ready -l k8s-app=calico-node --timeout=${INSTALL_TIME_OUT} pod -n kube-system --kubeconfig ${E2E_KUBECONFIG}
-#
 echo -e "\033[35m Succeed to install Calico \033[0m"

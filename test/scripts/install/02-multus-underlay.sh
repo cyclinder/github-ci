@@ -61,12 +61,30 @@ echo "MULTUS_HELM_OPTIONS: ${MULTUS_HELM_OPTIONS}"
 
 helm repo add daocloud https://daocloud.github.io/network-charts-repackage/
 # prepare image
-#IMAGES_LIST=` helm template test daocloud/multus-underlay --version ${MULTUS_UNDERLAY_VERSION} ${MULTUS_HELM_OPTIONS} | grep " image: " | tr -d '"'| awk '{print $2}' `
+HELM_IMAGES_LIST=` helm template test daocloud/multus-underlay --version ${MULTUS_UNDERLAY_VERSION} ${MULTUS_HELM_OPTIONS} | grep " image: " | tr -d '"'| awk '{print $2}' `
+
+[ -z "${HELM_IMAGES_LIST}" ] && echo "can't found image of multus-underlay" && exit 1
+LOCAL_IMAGE_LIST=`docker images | awk '{printf("%s:%s\n",$1,$2)}'`
+
+for IMAGE in ${HELM_IMAGES_LIST}; do
+  found=false
+  for LOCAL_IMAGE in ${LOCAL_IMAGE_LIST}; do
+    if [ "${IMAGE}" == "${LOCAL_IMAGE}" ]; then
+        found=true
+    fi
+  done
+  if [ "${found}" == "false" ] ; then
+      echo "===> docker pull ${IMAGE}..."
+      docker pull ${IMAGE}
+  fi
+  echo "===> load image ${IMAGE} to kind..."
+  kind load docker-image ${IMAGE} --name ${IP_FAMILY}
+done
 
 # helm repo update daocloud
 helm install multus-underlay daocloud/multus-underlay -n kube-system  --kubeconfig ${E2E_KUBECONFIG} ${MULTUS_HELM_OPTIONS} --version ${MULTUS_UNDERLAY_VERSION}
 
-sleep 30
+sleep 10
 
 kubectl get po -n kube-system --kubeconfig ${E2E_KUBECONFIG}
 kubectl describe po -n kube-system -l app.kubernetes.io/instance=multus-underlay --kubeconfig ${E2E_KUBECONFIG}

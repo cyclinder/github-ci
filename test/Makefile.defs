@@ -22,5 +22,5 @@ CNI_PLUGINS_VERSION=v1.1.1
 
 # proxy
 RUN_ON_LOCAL=false
-META_PLUGINS_CI_REPO=
+META_PLUGINS_CI_REPO=ghcr.io/spidernet-io/cni-plugins/meta-plugins
 

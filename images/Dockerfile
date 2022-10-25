@@ -10,4 +10,4 @@ COPY --from=build /usr/src/cni-plugins/.tmp/bin/ /home/cnibin
 WORKDIR /
 ADD ./images/entrypoint.sh /
 
-ENTRYPOINT ["bash","-c","/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
