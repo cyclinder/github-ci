@@ -54,7 +54,7 @@ esac
 if [ ${RUN_ON_LOCAL} == false ]; then
   MULTUS_HELM_OPTIONS+=" --set multus.image.repository=ghcr.io/k8snetworkplumbingwg/multus-cni \
   --set sriov.sriovCni.repository=ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin \
-  --set meta-plugins.image.repository=ghcr.io/spidernet-io/cni-plugins/meta-plugins "
+  --set meta-plugins.image.repository=ghcr.io/spidernet-io/cni-plugins/meta-plugins"
 fi
 
 echo "MULTUS_HELM_OPTIONS: ${MULTUS_HELM_OPTIONS}"
@@ -64,6 +64,10 @@ helm repo add daocloud https://daocloud.github.io/network-charts-repackage/
 helm install multus-underlay daocloud/multus-underlay -n kube-system --wait --kubeconfig ${E2E_KUBECONFIG} ${MULTUS_HELM_OPTIONS} --version ${MULTUS_UNDERLAY_VERSION}
 
 # wait multus-ready
+sleep 30s
+
+kubectl get po -n kube-system --kubeconfig ${E2E_KUBECONFIG}
+
 kubectl wait --for=condition=ready -l app.kubernetes.io/instance=multus-underlay --timeout=${INSTALL_TIME_OUT} pod -n kube-system --kubeconfig ${E2E_KUBECONFIG}
 
 # create extra multus cr to test
