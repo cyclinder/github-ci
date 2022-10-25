@@ -41,7 +41,7 @@ case ${IP_FAMILY} in
   dual)
     MULTUS_HELM_OPTIONS+=" --set cluster_subnet.service_subnet.ipv4=${CLUSTER_SERVICE_SUBNET_V4}  \
     --set cluster_subnet.service_subnet.ipv6=${CLUSTER_SERVICE_SUBNET_V6} \
-    --set cluster_subnet.pod_subnet="{${CLUSTER_POD_SUBNET_V4},${CLUSTER_POD_SUBNET_V6}}" "
+    --set "cluster_subnet.pod_subnet={${CLUSTER_POD_SUBNET_V4},${CLUSTER_POD_SUBNET_V6}}" "
     SERVICE_HIJACK_SUBNET="[\"${CLUSTER_SERVICE_SUBNET_V4}\",\"${CLUSTER_SERVICE_SUBNET_V6}\"]"
     OVERLAY_HIJACK_SUBNET="[\"${CLUSTER_POD_SUBNET_V4}\",\"${CLUSTER_POD_SUBNET_V6}\"]"
     ;;
@@ -52,7 +52,8 @@ esac
 
 if [ ${RUN_ON_LOCAL} == false ]; then
   MULTUS_HELM_OPTIONS+=" --set multus.image.repository=ghcr.io/k8snetworkplumbingwg/multus-cni \
-  --set sriov.sriovCni.repository=ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin \
+  --set sriov.images.sriovCni.repository=ghcr.io/k8snetworkplumbingwg/sriov-cni \
+  --set sriov.images.sriovDevicePlugin.repository=ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin \
   --set meta-plugins.image.repository=${META_PLUGINS_CI_REPO}"
 fi
 
@@ -60,26 +61,12 @@ echo "MULTUS_HELM_OPTIONS: ${MULTUS_HELM_OPTIONS}"
 
 helm repo add daocloud https://daocloud.github.io/network-charts-repackage/
 # prepare image
-
-IMAGES_LIST=` helm template test daocloud/multus-underlay --version ${MULTUS_UNDERLAY_VERSION} ${MULTUS_HELM_OPTIONS} | grep " image: " | tr -d '"'| awk '{print $2}' `
-[ -z "${IMAGES_LIST}" ] && echo "warning, failed to find image from chart template for multus-underlay" && exit 1
-for IMAGE in ${IMAGES_LIST} ; do
-  EXIST=` docker images | awk '{printf("%s:%s\n",$$1,$$2)}' | grep "${IMAGE}" `
-  if [ -z "${EXIST}" ] ; then
-    echo "docker pull ${IMAGE} to local"
-    docker pull ${IMAGE}
-  fi
-  echo "kind load local image ${IMAGE} to kind" ; \
-  kind load docker-image ${IMAGE} --name $(IP_FAMILY)  ; \
-done
+#IMAGES_LIST=` helm template test daocloud/multus-underlay --version ${MULTUS_UNDERLAY_VERSION} ${MULTUS_HELM_OPTIONS} | grep " image: " | tr -d '"'| awk '{print $2}' `
 
 # helm repo update daocloud
 helm install multus-underlay daocloud/multus-underlay -n kube-system  --kubeconfig ${E2E_KUBECONFIG} ${MULTUS_HELM_OPTIONS} --version ${MULTUS_UNDERLAY_VERSION}
 
 # wait multus-ready
-
-echo 123
-
 sleep 60s
 
 kubectl get po -n kube-system --kubeconfig ${E2E_KUBECONFIG}

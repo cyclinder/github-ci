@@ -59,17 +59,6 @@ esac
 echo "SPIDERPOOL_HELM_OPTIONS: ${SPIDERPOL_HELM_OPTIONS}"
 
 helm repo add daocloud https://daocloud.github.io/network-charts-repackage/
-IMAGES_LIST=` helm template test daocloud/spiderpool --version ${SPIDERPOOL_VERSION} ${SPIDERPOL_HELM_OPTIONS} | grep " image: " | tr -d '"'| awk '{print $2}' `
-[ -z "${IMAGES_LIST}" ] && echo "warning, failed to find image from chart template for spiderpool" && exit 1
-for IMAGE in ${IMAGES_LIST} ; do
-  EXIST=` docker images | awk '{printf("%s:%s\n",$$1,$$2)}' | grep "${IMAGE}" `
-  if [ -z "${EXIST}" ] ; then
-    echo "docker pull ${IMAGE} to local"
-    docker pull ${IMAGE}
-  fi
-  echo "kind load local image ${IMAGE} to kind" ; \
-  kind load docker-image ${IMAGE} --name $(IP_FAMILY)  ; \
-done
 
 # Install spiderpool
 helm install spiderpool daocloud/spiderpool -n kube-system --kubeconfig ${E2E_KUBECONFIG} ${SPIDERPOL_HELM_OPTIONS} --version ${SPIDERPOOL_VERSION}
