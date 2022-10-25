@@ -62,6 +62,9 @@ helm repo add daocloud https://daocloud.github.io/network-charts-repackage/
 helm install multus-underlay daocloud/multus-underlay -n kube-system --wait --kubeconfig ${E2E_KUBECONFIG} ${MULTUS_HELM_OPTIONS} --version ${MULTUS_UNDERLAY_VERSION}
 
 # wait multus-ready
+
+echo 123
+
 sleep 60s
 
 kubectl get po -n kube-system --kubeconfig ${E2E_KUBECONFIG}
