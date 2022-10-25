@@ -28,17 +28,17 @@ test:
 .PHONY: lint_image_trivy
 lint_image_trivy: IMAGE_NAME ?=
 lint_image_trivy:
-	@ [ -n "$(IMAGE_NAME)" ] || { echo "error, please input IMAGE_NAME" && exit 1 ; }  ; \
+	[ -n "$(IMAGE_NAME)" ] || { echo "error, please input IMAGE_NAME" && exit 1 ; }  ; \
  	IS_TAR_FILE=` echo $(IMAGE_NAME) | egrep \.tar$ ` ; \
- 	if [ -n "${IS_TAR_FILE}" ]; then  \
+ 	if [ -z "${IS_TAR_FILE}" ]; then  \
 		docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
 			  -v /tmp/trivy:/root/trivy.cache/  \
-			  aquasec/trivy:latest image --exit-code 1  --severity $(LINT_TRIVY_SEVERITY_LEVEL)  $(IMAGE_NAME)  ;\
+			  aquasec/trivy:latest image --exit-code 1  --severity $(LINT_TRIVY_SEVERITY_LEVEL)  ${IMAGE_NAME}  ;\
  	else  \
 		docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
 			  -v /tmp/trivy:/root/trivy.cache/ \
 			  -v $(IMAGE_NAME):$(IMAGE_NAME)  \
-			  aquasec/trivy:latest image --exit-code 1  --severity $(LINT_TRIVY_SEVERITY_LEVEL)  --input $(IMAGE_NAME)  ;\
+			  aquasec/trivy:latest image --exit-code 1  --severity $(LINT_TRIVY_SEVERITY_LEVEL)  --input ${IMAGE_NAME}  ;\
  	fi
 
 .PHONY: lint_chart_trivy

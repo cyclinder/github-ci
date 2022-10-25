@@ -53,6 +53,7 @@ install:
 	  chmod +x scripts/install/$${script} ; \
 	  bash scripts/install/$${script} || { echo "failed to run scripts/install/$${script} "; exit 1 ; } ; \
 	done
+	kubectl get po -n kube-system --kubeconfig ${E2E_KUBECONFIG}
 
 .PHONY: kind-init
 kind-init:
