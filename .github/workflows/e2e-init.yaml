@@ -51,8 +51,9 @@ jobs:
 
       - name: Load Image to docker
         run: |
-          echo "docker import"
-          # cat .tmp/ci-images.tar |  docker import - ghcr.io/${{ github.repository }}/meta-plugins-ci:latest
+          echo "docker load"
+          docker load -i .tmp/ci-images.tar
+          docker images
 
       - name: Setup Kind Cluster
         run: |
@@ -65,7 +66,7 @@ jobs:
           max_attempts: 3
           shell: bash
           command: |
-            echo "kind load docker-image ghcr.io/${{ github.repository }}/meta-plugins-ci:latest --name ${{ inputs.ip_family }}"
+            kind load docker-image ghcr.io/${{ github.repository }}/meta-plugins-ci:latest --name ${{ inputs.ip_family }}
 
       - name: Install
         id: install
