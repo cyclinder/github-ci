@@ -80,7 +80,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: ./
-          push: true
+          push: false
           tags: ghcr.io/${{ github.repository }}/meta-plugins:${{ steps.tag.outputs.version }}
           file: ./images/Dockerfile
           github-token: ${{ secrets.WELAN_PAT }}
