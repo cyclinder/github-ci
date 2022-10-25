@@ -60,7 +60,7 @@ echo "SPIDERPOOL_HELM_OPTIONS: ${SPIDERPOOL_HELM_OPTIONS}"
 
 helm repo add daocloud https://daocloud.github.io/network-charts-repackage/
 
-HELM_IMAGES_LIST=` helm template test daocloud/spiderpool --version ${SPIDERPOOL_VERSION} ${SPIDERPOL_HELM_OPTIONS} | grep " image: " | tr -d '"'| awk '{print $2}' `
+HELM_IMAGES_LIST=` helm template test daocloud/spiderpool --version ${SPIDERPOOL_VERSION} ${SPIDERPOOL_HELM_OPTIONS} | grep " image: " | tr -d '"'| awk '{print $2}' `
 
 [ -z "${HELM_IMAGES_LIST}" ] && echo "can't found image of spiderpool" && exit 1
 LOCAL_IMAGE_LIST=`docker images | awk '{printf("%s:%s\n",$1,$2)}'`
