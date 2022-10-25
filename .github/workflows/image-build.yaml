@@ -85,6 +85,7 @@ jobs:
           file: ./images/Dockerfile
           github-token: ${{ secrets.WELAN_PAT }}
           platforms: ${{ env.BUILD_PLATFORM }}
+          outputs: type=tar,dest=/tmp/ci-images.tar
           build-args: |
             GIT_COMMIT_VERSION=${{ steps.arg.outputs.commitver }}
             GIT_COMMIT_TIME=${{ steps.arg.outputs.committime }}
@@ -111,7 +112,6 @@ jobs:
         run: |
           docker images
           make lint_image_trivy -e IMAGE_NAME=ghcr.io/${{ github.repository }}/meta-plugins-ci:latest
-          docker save -o /tmp/ci-images.tar ghcr.io/${{ github.repository }}/meta-plugins-ci:latest
 
       - name: Upload artifact e2e image tar
         if: ${{ steps.tag.outputs.push != 'true' }}
