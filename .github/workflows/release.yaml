@@ -31,13 +31,12 @@ jobs:
       - name: Get Ref
         id: get_ref
         run: |
-          if ${{ github.event.inputs.ref != '' }} ; then
+          if ${{ github.event_name == 'workflow_dispatch' }} ; then
             echo "call by workflow_dispatch"
-            echo ::set-output name=ref::${{ github.event.inputs.ref }}
+            echo ::set-output name=tag::${{ github.event.inputs.ref }}
           elif ${{ github.event_name == 'push' }} ; then
             echo "trigger by push"
             echo ::set-output name=ref::${GITHUB_REF#refs/*/}
-            echo ${{ ref }}
           else
             echo "unexpected event: ${{ github.event_name }}"
             exit 1
