@@ -36,7 +36,7 @@ jobs:
             echo "ref="${{ inputs.ref }}" >> $GITHUB_OUTPUT
           elif ${{ github.event_name == 'push' }} ; then
             echo "trigger by push"
-            echo "ref=${GITHUB_REF#refs/*/} >> $GITHUB_OUTPUT
+            echo ::set-output name=ref::${GITHUB_REF#refs/*/}
             echo ${{ ref }}
           else
             echo "unexpected event: ${{ github.event_name }}"
