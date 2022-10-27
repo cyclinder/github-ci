@@ -43,8 +43,6 @@ jobs:
     - name: Get Upload
       id: tag
       run: |
-        if ${{ github.event_name == 'workflow_dispatch' }} ; then
-
         if ${{ inputs.ref != '' }} ; then
           echo "call by workflow_call"
           echo ::set-output name=upload::true

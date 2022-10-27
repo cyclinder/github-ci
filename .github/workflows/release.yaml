@@ -26,21 +26,34 @@ jobs:
   get_ref:
     runs-on: ubuntu-latest
     outputs:
-      ref: ${{ steps.get_ref.outputs.ref }}
+      tag: ${{ steps.get_ref.outputs.tag }}
     steps:
       - name: Get Ref
         id: get_ref
         run: |
           if ${{ github.event_name == 'workflow_dispatch' }} ; then
-            echo "call by workflow_dispatch"
-            echo ::set-output name=tag::${{ github.event.inputs.ref }}
+            echo "call by self workflow_dispatch"
+            echo ::set-output name=tag::${{ github.event.inputs.tag }}
           elif ${{ github.event_name == 'push' }} ; then
-            echo "trigger by push"
-            echo ::set-output name=ref::${GITHUB_REF#refs/*/}
+            echo "call by push tag"
+            echo ::set-output name=tag::${GITHUB_REF##*/}
           else
             echo "unexpected event: ${{ github.event_name }}"
             exit 1
           fi
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ steps.get_ref.outputs.tag }}
+
+      - name: Create branch
+        uses: peterjgrainger/action-create-branch@v2.2.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          branch: 'release-${{ steps.get_ref.outputs.tag }}'
+          sha: '${{ github.sha }}'
 
   test:
     runs-on: ubuntu-latest
