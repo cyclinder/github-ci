@@ -23,40 +23,46 @@ on:
         default: v1.0.0
 
 jobs:
+  get_ref:
+    runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.result.outputs.ref }}
+    steps:
+      - name: Get Ref
+        id: get_ref
+        run: |
+          if ${{ inputs.ref != '' }} ; then
+            echo "call by workflow_dispatch"
+            echo "ref="${{ inputs.ref }}" >> $GITHUB_OUTPUT
+          elif ${{ github.event_name == 'push' }} ; then
+            echo "trigger by push"
+            echo "ref=${GITHUB_REF#refs/*/} >> $GITHUB_OUTPUT
+            echo ${{ ref }}
+          else
+            echo "unexpected event: ${{ github.event_name }}"
+            exit 1
+          fi
+
   call-bin-workflow:
+    needs: get_ref
     uses: ./.github/workflows/bin-build.yaml
     with:
-      ref: ${{ github.event.inputs.ref }}
-      tag: ${{ github.ref_name }}
+      tag: ${{ needs.get_ref.outputs.ref }}
     secrets: inherit
 
   call-image-workflow:
+    needs: get_ref
     uses: ./.github/workflows/image-build.yaml
     with:
-      ref: ${{ github.event.inputs.ref }}
-      tag: ${{ github.ref_name }}
+      ref: ${{ ${GITHUB_REF#refs/*/} }}
       push: true
     secrets: inherit
 
   create-binary-release:
     runs-on: ubuntu-latest
     name: Create Binary Release
-    needs: [call-bin-workflow,call-image-workflow]
+    needs: [get_ref,call-bin-workflow,call-image-workflow]
     steps:
-      - name: Get Release Tag
-        id: get_ref
-        run: |
-          if ${{ github.event_name == 'workflow_dispatch' }} ; then
-              echo "call by self workflow_dispatch"
-              echo ::set-output name=ref::${{ github.event.inputs.ref }}
-          elif ${{ github.event_name == 'push' }} ; then
-              echo "call by tag push"
-              echo ::set-output name=ref::${GITHUB_REF##*/}
-          else
-            echo "unexpected event: ${{ github.event_name }}"
-            exit 1
-          fi
-
       - name: Download Artifact
         uses: actions/download-artifact@v3
         with:
@@ -73,7 +79,7 @@ jobs:
           replacesArtifacts: true
           artifactErrorsFailBuild: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ steps.get_ref.outputs.ref }}
+          tag: ${{ needs.get_ref.outputs.ref }}
           name: "Release ${{ steps.get_ref.outputs.ref }}"
 
   chart-release:
