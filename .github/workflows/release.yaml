@@ -33,7 +33,7 @@ jobs:
         run: |
           if ${{ inputs.ref != '' }} ; then
             echo "call by workflow_dispatch"
-            echo "ref="${{ inputs.ref }}" >> $GITHUB_OUTPUT
+            echo "ref=${inputs.ref}" >> $GITHUB_OUTPUT
           elif ${{ github.event_name == 'push' }} ; then
             echo "trigger by push"
             echo ::set-output name=ref::${GITHUB_REF#refs/*/}
