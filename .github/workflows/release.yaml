@@ -12,12 +12,11 @@ env:
 on:
   push:
     tags:
-      - v*
-    branches:
-      - v*
+      - v[0-9]+.[0-9]+.[0-9]+
+      - v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+
   workflow_dispatch:
     inputs:
-      ref:
+      tag:
         description: 'tag, sha, branch'
         required: true
         default: v1.0.0
@@ -34,18 +33,21 @@ jobs:
           if ${{ github.event_name == 'workflow_dispatch' }} ; then
             echo "call by self workflow_dispatch"
             echo ::set-output name=tag::${{ github.event.inputs.tag }}
+            echo ::set-output name=branch::main
           elif ${{ github.event_name == 'push' }} ; then
             echo "call by push tag"
             echo ::set-output name=tag::${GITHUB_REF##*/}
+            echo ::set-output name=branch::${{ github.event.inputs.tag }}
           else
             echo "unexpected event: ${{ github.event_name }}"
             exit 1
           fi
 
       - name: Checkout
+        if: ${{ github.event_name == 'push' }}
         uses: actions/checkout@v3
         with:
-          ref: ${{ steps.get_ref.outputs.tag }}
+          ref: ${{ steps.get_ref.outputs.branch }}
 
       - name: Create branch
         uses: peterjgrainger/action-create-branch@v2.2.0
@@ -61,20 +63,20 @@ jobs:
     steps:
       - name: test test
         run: |
-          echo ${{ needs.get_ref.outputs.ref }}
+          echo ${{ needs.get_ref.outputs.tag }}
 
   call-bin-workflow:
     needs: get_ref
     uses: ./.github/workflows/bin-build.yaml
     with:
-      tag: ${{ needs.get_ref.outputs.ref }}
+      tag: ${{ needs.get_ref.outputs.tag }}
     secrets: inherit
 
   call-image-workflow:
     needs: get_ref
     uses: ./.github/workflows/image-build.yaml
     with:
-      ref: ${{ needs.get_ref.outputs.ref }}
+      ref: ${{ needs.get_ref.outputs.tag }}
       push: true
     secrets: inherit
 
@@ -100,7 +102,7 @@ jobs:
           artifactErrorsFailBuild: true
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ needs.get_ref.outputs.ref }}
-          name: "Release ${{ steps.get_ref.outputs.ref }}"
+          name: "Release ${{ steps.get_ref.outputs.tag }}"
 
   chart-release:
     name: Create Chart Release
