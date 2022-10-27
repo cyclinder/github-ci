@@ -42,6 +42,14 @@ jobs:
             exit 1
           fi
 
+  test:
+    runs-on: ubuntu-latest
+    needs: get_ref
+    steps:
+      - name: test test
+        run: |
+          echo ${{ needs.get_ref.outputs.ref }}
+
   call-bin-workflow:
     needs: get_ref
     uses: ./.github/workflows/bin-build.yaml
