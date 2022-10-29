@@ -99,6 +99,7 @@ jobs:
           allowUpdates: true
           removeArtifacts: true
           replacesArtifacts: true
+          generateReleaseNotes: true
           artifactErrorsFailBuild: true
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ needs.get_ref.outputs.tag }}
@@ -130,12 +131,3 @@ jobs:
         uses: helm/chart-releaser-action@v1.4.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-
-  create-release-notes:
-      runs-on: ubuntu-latest
-      steps:
-      - uses: actions/checkout@master
-      - name: Create Release Notes
-        uses: docker://decathlon/release-notes-generator-action:2.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
