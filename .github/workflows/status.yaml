@@ -1,0 +1,52 @@
+name: Badge Status
+
+env:
+  CODESTATUSSCRIPT: "./tools/scripts/codeCoverage.sh"
+  E2ESTATUSSCRIPT: "./tools/scripts/e2ecover.sh"
+  TODOSCRIPT: "./tools/scripts/todocover.sh"
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update-badges:
+    name: Update Badges
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Download cloc
+        run: sudo apt-get update -y && sudo apt-get install -y cloc
+
+      - name: Get the Numbers
+        shell: bash
+        run: |
+          TOOL_PATH=${{ env.CODESTATUSSCRIPT }}
+          COMMENT_PERCENTAGE=$(  ${TOOL_PATH} --comment-percent )
+          echo "CODE_LINES=${CODE_LINES}" >> $GITHUB_ENV
+          TOOL_PATH=${{ env.TODOSCRIPT }}
+          TODO_STATUS=$( ${TOOL_PATH} )
+          echo "TODO_STATUS=${TODO_STATUS}" >> $GITHUB_ENV
+
+      - name: Create Lines-of-Code-Badge
+        uses: schneegans/dynamic-badges-action@v1.6.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: 119c3c99d0336b615ea789bf4f0bbbf3
+          filename: test.json
+          label: Code Lines
+          message: ${{ env.CODE_LINES }}
+          color: lightgrey
+
+      - name: Create TODO-Badge
+        uses: schneegans/dynamic-badges-action@v1.6.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: cd9ef69f5ba8724cb4ff896dca953ef4
+          filename: todo.json
+          label: todo
+          message: ${{ env.TODO_STATUS }}
+          color: lightgrey
