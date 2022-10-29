@@ -137,6 +137,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 		return err
 	}
 
+	// todo: make it more simple
 	ruleTable := utils.GetRuleNumber(preInterfaceName)
 	if ruleTable < 0 {
 		logger.Error("failed to get the number of rule table for interface", zap.String("interface", preInterfaceName))

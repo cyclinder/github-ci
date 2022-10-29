@@ -20,6 +20,13 @@ build:
 lint-golang:
 	GOOS=linux golangci-lint run ./...
 
+.PHONY: unit-test
+unit-test:
+	 ginkgo --cover --coverprofile=coverage.out --covermode set \
+	 	--json-report unitestreport.json -randomize-suites -randomize-all --keep-going \
+  	 	--timeout=1h  -p   --slow-spec-threshold=120s -vv  -r pkg plugins/* ; \
+  	 go tool cover -html=./coverage.out -o coverage-all.html
+
 .PHONY: test
 test:
 	make -C test test

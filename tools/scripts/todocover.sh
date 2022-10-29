@@ -28,6 +28,6 @@ if [ "$1"x == "check"x ] ; then
   fi
 
 else
-  NUM=$( grep -E -i  "//[[:space:]]*TODO[[:space:]]*\(.*\)" ${PROJECT_ROOT} -R ${EXCLUDE_DIR_OPT}  | wc -l )
+  NUM=$( grep -E -i  "//[[:space:]]*TODO[[:space:]]*(.*)" ${PROJECT_ROOT} -R ${EXCLUDE_DIR_OPT}  | wc -l )
   echo $NUM
 fi

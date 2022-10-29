@@ -143,9 +143,8 @@ jobs:
       # ================= unitest
       - name: Run unitest
         id: unitest
-        continue-on-error: true
         run: |
-          make -C test unit-test
+          make unit-test
 
       - name: Upload Coverage Artifact
         if: ${{ steps.unitest.outcome == 'failure' }}
@@ -174,10 +173,4 @@ jobs:
           name: my-codecov-umbrella
           fail_ci_if_error: true
           verbose: true
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Result
-        if: ${{ steps.unitest.outcome == 'failure' }}
-        run: |
-          echo "unitest failed"
-          exit 1
+          # token: ${{ secrets.CODECOV_TOKEN }}

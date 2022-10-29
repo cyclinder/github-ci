@@ -77,8 +77,3 @@ clean:
 	docker rm -f ${VLAN_GATEWAY_CONTAINER}
 	rm -rf ../.tmp/
 
-.PHONY: unit-test
-unit-test:
-	 ginkgo --cover --coverprofile=./coverage.out --covermode set \
-	 --json-report .tmp/unitestreport.json -randomize-suites -randomize-all --keep-going \
-  	 --timeout=1h  -p   --slow-spec-threshold=120s -vv  -r pkg plugins/*

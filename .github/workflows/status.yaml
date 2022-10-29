@@ -1,4 +1,4 @@
-name: Badge Status
+name: Update Badge
 
 env:
   CODESTATUSSCRIPT: "./tools/scripts/codeCoverage.sh"
@@ -26,17 +26,19 @@ jobs:
         run: |
           TOOL_PATH=${{ env.CODESTATUSSCRIPT }}
           COMMENT_PERCENTAGE=$(  ${TOOL_PATH} --comment-percent )
+          CODE_LINES=$(  ${TOOL_PATH} --code-lines )
           echo "CODE_LINES=${CODE_LINES}" >> $GITHUB_ENV
           TOOL_PATH=${{ env.TODOSCRIPT }}
           TODO_STATUS=$( ${TOOL_PATH} )
           echo "TODO_STATUS=${TODO_STATUS}" >> $GITHUB_ENV
+          echo "COMMENT_PERCENTAGE=${COMMENT_PERCENTAGE}" >> $GITHUB_ENV
 
       - name: Create Lines-of-Code-Badge
         uses: schneegans/dynamic-badges-action@v1.6.0
         with:
           auth: ${{ secrets.GIST_SECRET }}
-          gistID: 119c3c99d0336b615ea789bf4f0bbbf3
-          filename: test.json
+          gistID: 6b05882662346c2592a432226bf3d249
+          filename: code-lines.json
           label: Code Lines
           message: ${{ env.CODE_LINES }}
           color: lightgrey
@@ -45,8 +47,20 @@ jobs:
         uses: schneegans/dynamic-badges-action@v1.6.0
         with:
           auth: ${{ secrets.GIST_SECRET }}
-          gistID: cd9ef69f5ba8724cb4ff896dca953ef4
+          gistID: 82aa5e4487e1870aa206c1d713429345
           filename: todo.json
           label: todo
           message: ${{ env.TODO_STATUS }}
           color: lightgrey
+
+      - name: Create Comments-Badge
+        uses: schneegans/dynamic-badges-action@v1.6.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: 92ef1f04e61af8f8b970c0b15f51c7a8
+          filename: comment.json
+          label: Comments
+          message: ${{ env.COMMENT_PERCENTAGE }}%
+          valColorRange: ${{ env.COMMENT_PERCENTAGE }}
+          maxColorRange: 100
+          minColorRange: 0
