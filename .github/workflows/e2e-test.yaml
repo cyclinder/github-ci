@@ -98,10 +98,16 @@ jobs:
       ref: ${{ needs.get_ref.outputs.ref }}
     secrets: inherit
 
+  test:
+    needs: [call_e2e_dual]
+    runs-on: ubuntu-latest
+    run: |
+      echo ${{ needs.call_e2e_dual.result }}
+
   create_e2e_issue:
     needs: [call_e2e_dual]
     runs-on: ubuntu-latest
-    if: always() && !cancelled() && contains(needs.*.result, 'true')
+    if: always() && !cancelled() && needs.call_e2e_dual.result == 'true'
     steps:
       - name: echo
         run: |
