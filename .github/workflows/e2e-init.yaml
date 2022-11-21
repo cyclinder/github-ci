@@ -20,6 +20,8 @@ on:
 jobs:
   call_e2e:
     runs-on: ubuntu-latest
+    outputs:
+      result: ${{ steps.e2e.outputs.pass }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
