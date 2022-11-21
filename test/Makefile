@@ -11,15 +11,15 @@ vlan:
 
 .PHONY: e2e
 e2e:
-	export E2E_KUBECONFIG_PATH=${E2E_KUBECONFIG}; [ -f "$${E2E_KUBECONFIG_PATH}" ] || { echo "error, does not exist KUBECONFIG: ${E2E_KUBECONFIG_PATH}" ; exit 1 ; } ; \
-	export E2E_CLUSTER_NAME=${IP_FAMILY} ; \
-	export VLAN_GATEWAY_CONTAINER=${VLAN_GATEWAY_CONTAINER} ; \
-	NODE_LIST="` docker ps | egrep " kindest/node.* $(IP_FAMILY)-(control|worker)" | awk '{print $$1 }' ` "; \
-	[ -n "$$NODE_LIST" ] || { echo "error, failed to find any kind nodes, please setup kind cluster $(E2E_CLUSTER_NAME) first" ; exit 1 ; } ; \
-	NODE_LIST=` echo "$${NODE_LIST}" | tr -d ' ' | tr '\n' ',' ` ; \
-	NODE_LIST=$${NODE_LIST%%,} ; \
-	echo "find cluster node: $${NODE_LIST}" ; \
-	export E2E_KIND_CLUSTER_NODE_LIST="$${NODE_LIST}" ; \
+	#export E2E_KUBECONFIG_PATH=${E2E_KUBECONFIG}; [ -f "$${E2E_KUBECONFIG_PATH}" ] || { echo "error, does not exist KUBECONFIG: ${E2E_KUBECONFIG_PATH}" ; exit 1 ; } ; \
+	#export E2E_CLUSTER_NAME=${IP_FAMILY} ; \
+	#export VLAN_GATEWAY_CONTAINER=${VLAN_GATEWAY_CONTAINER} ; \
+	#NODE_LIST="` docker ps | egrep " kindest/node.* $(IP_FAMILY)-(control|worker)" | awk '{print $$1 }' ` "; \
+	#[ -n "$$NODE_LIST" ] || { echo "error, failed to find any kind nodes, please setup kind cluster $(E2E_CLUSTER_NAME) first" ; exit 1 ; } ; \
+	#NODE_LIST=` echo "$${NODE_LIST}" | tr -d ' ' | tr '\n' ',' ` ; \
+	#NODE_LIST=$${NODE_LIST%%,} ; \
+	#echo "find cluster node: $${NODE_LIST}" ; \
+	#export E2E_KIND_CLUSTER_NODE_LIST="$${NODE_LIST}" ; \
 	if [ "$(IP_FAMILY)" = "ipv4" ] ; then \
 		export E2E_IPV4_ENABLED=true ; export E2E_IPV6_ENABLED=false ; \
 	elif [ "$(IP_FAMILY)" = "ipv6" ] ; then \
