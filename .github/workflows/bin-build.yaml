@@ -61,7 +61,9 @@ jobs:
         fi
 
     - name: Build
-      run:  make build ARCH=${{ matrix.go_arch }}
+      run:
+        sudo ip a
+        make build ARCH=${{ matrix.go_arch }}
 
     - name: Tar Binary Files
       if: ${{ steps.tag.outputs.upload == 'true' }}
