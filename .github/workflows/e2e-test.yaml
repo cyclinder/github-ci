@@ -97,3 +97,23 @@ jobs:
       push: false
       ref: ${{ needs.get_ref.outputs.ref }}
     secrets: inherit
+
+  create_e2e_issue:
+    needs: [call_e2e_dual]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' && always() && !cancelled() && contains(needs.*.result, 'false')
+    steps:
+      - name: echo
+        run: |
+          echo ${{ github.repository }}
+          echo ${{ github.repository_owner }}
+          echo "TIMESTAMP=`date +%Y-%m-%d`" >> $GITHUB_ENV
+      - name: create an issue
+        uses: dacbd/create-issue-action@v1.2.1
+        with:
+          token: ${{ secrets.WELAN_PAT }}
+          title: "Auto E2E CI ${{ ENV.TIMESTAMP }}: Failed(Auto Create)"
+          body: |
+            action url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          labels: "kind/bug"
+          assignees: "cyclinder"
