@@ -101,8 +101,11 @@ jobs:
   test:
     needs: [call_e2e_dual]
     runs-on: ubuntu-latest
-    run: |
-      echo ${{ needs.call_e2e_dual.result }}
+    steps:
+      - name: test
+        run: |
+          echo ${{ needs.call_e2e_dual.result }}
+
 
   create_e2e_issue:
     needs: [call_e2e_dual]
