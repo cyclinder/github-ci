@@ -108,6 +108,7 @@ jobs:
 
   test:
     needs: [call_e2e_dual,call_e2e_ipv4,call_e2e_ipv6]
+    if:  always()
     runs-on: ubuntu-latest
     steps:
       - name: test

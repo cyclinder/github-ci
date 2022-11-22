@@ -40,4 +40,4 @@ jobs:
         id: e2e
         run: |
           echo "pass=false" >> $GITHUB_OUTPUT
-          echo "ref=123" >> $GITHUB_OUTPUT
+          exit 1
