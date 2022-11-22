@@ -106,6 +106,17 @@ jobs:
       ref: ${{ needs.get_ref.outputs.ref }}
     secrets: inherit
 
+  test:
+    needs: [call_e2e_dual,call_e2e_ipv4,call_e2e_ipv6]
+    runs-on: ubuntu-latest
+    steps:
+      - name: test
+        run: |
+          echo ${{ needs.call_e2e_dual.result }}
+          echo ${{ needs.call_e2e_ipv4.result }}
+          echo ${{ needs.call_e2e_ipv6.result }}
+
+
   create_e2e_issue:
     needs: [call_e2e_dual,call_e2e_ipv4,call_e2e_ipv6]
     runs-on: ubuntu-latest
