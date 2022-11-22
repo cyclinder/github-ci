@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       result: ${{ steps.e2e.outputs.pass }}
+      ref: ${{ steps.e2e.outputs.ref }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -38,5 +39,5 @@ jobs:
       - name: Install Ginkgo
         id: e2e
         run: |
-          go install github.com/onsi/ginkgo/v2/ginkgo@v2.3.0
           echo "pass=false" >> $GITHUB_OUTPUT
+          echo "ref=123" >> $GITHUB_OUTPUT

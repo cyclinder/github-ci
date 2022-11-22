@@ -112,9 +112,9 @@ jobs:
     steps:
       - name: test
         run: |
-          echo ${{ needs.call_e2e_dual.result }}
-          echo ${{ needs.call_e2e_ipv4.result }}
-          echo ${{ needs.call_e2e_ipv6.result }}
+          echo "${{ needs.call_e2e_dual.result }} -> ${{ needs.call_e2e_dual.ref }} "
+          echo "${{ needs.call_e2e_ipv4.result }} -> ${{ needs.call_e2e_ipv4.ref }} "
+          echo "${{ needs.call_e2e_ipv6.result }} -> ${{ needs.call_e2e_ipv6.ref }} "
 
 
   create_e2e_issue:
