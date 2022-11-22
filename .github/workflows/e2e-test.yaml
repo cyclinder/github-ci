@@ -79,18 +79,8 @@ jobs:
           git_ref=$( git show -s --format='format:%H')
           echo "ref=${git_ref}" >> $GITHUB_OUTPUT
 
-  call_build_e2e_image:
-    needs: [get_ref]
-    if: ${{ needs.get_ref.outputs.run_e2e == 'true' }}
-    uses: ./.github/workflows/image-build.yaml
-    with:
-      ref: ${{ needs.get_ref.outputs.ref }}
-      push: false
-    secrets: inherit
-
   call_e2e_dual:
-    needs: [get_ref,call_build_e2e_image]
-    if: ${{ needs.get_ref.outputs.run_e2e == 'true' }}
+    needs: [get_ref]
     uses: ./.github/workflows/e2e-init.yaml
     with:
       ip_family: dual
@@ -98,31 +88,31 @@ jobs:
       ref: ${{ needs.get_ref.outputs.ref }}
     secrets: inherit
 
-  test:
-    needs: [call_e2e_dual]
-    runs-on: ubuntu-latest
-    steps:
-      - name: test
-        run: |
-          echo ${{ needs.call_e2e_dual.result }}
+  call_e2e_ipv4:
+    needs: [get_ref]
+    uses: ./.github/workflows/e2e-init.yaml
+    with:
+      ip_family: ipv4
+      push: false
+      ref: ${{ needs.get_ref.outputs.ref }}
+    secrets: inherit
 
+  call_e2e_ipv6:
+    needs: [get_ref]
+    uses: ./.github/workflows/e2e-init.yaml
+    with:
+      ip_family: ipv6
+      push: false
+      ref: ${{ needs.get_ref.outputs.ref }}
+    secrets: inherit
 
   create_e2e_issue:
-    needs: [call_e2e_dual]
+    needs: [call_e2e_dual,call_e2e_ipv4,call_e2e_ipv6]
     runs-on: ubuntu-latest
-    if: always() && !cancelled() && needs.call_e2e_dual.result == 'true'
+    if:  always() && !cancelled() && contains(needs.*.result, 'false')
     steps:
       - name: echo
         run: |
           echo ${{ github.repository }}
           echo ${{ github.repository_owner }}
           echo "TIMESTAMP=`date +%Y-%m-%d`" >> $GITHUB_ENV
-      - name: create an issue
-        uses: dacbd/create-issue-action@v1.2.1
-        with:
-          token: ${{ secrets.WELAN_PAT }}
-          title: "Auto E2E CI ${{ ENV.TIMESTAMP }}: Failed(Auto Create)"
-          body: |
-            action url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          labels: "kind/bug"
-          assignees: "cyclinder"

@@ -36,43 +36,7 @@ jobs:
           id: go
 
       - name: Install Ginkgo
-        run:
-          go install github.com/onsi/ginkgo/v2/ginkgo@v2.3.0
-
-      # https://github.com/helm/kind-action
-      - name: Install Kind Bin
-        uses: helm/kind-action@v1.4.0
-        with:
-          install_only: true
-
-      - name: Download ci image
-        uses: actions/download-artifact@v3
-        with:
-          name: image-e2e-tar
-          path: .tmp
-
-      - name: Load Image to docker
-        run: |
-          echo "docker load"
-          docker load -i .tmp/ci-images.tar
-          docker images
-
-      - name: Run E2E
         id: e2e
-        continue-on-error: true
         run: |
-            RESULT=0
-            make -C test e2e IP_FAMILY=${{ inputs.ip_family }} || RESULT=$?
-            if ((RESULT==0)) ; then
-                echo "pass=true" >> $GITHUB_OUTPUT
-            else
-                echo "pass=false" >> $GITHUB_OUTPUT
-            fi
-
-      - name: Show e2e Result For Dual-stack
-        run: |
-          if ${{ steps.e2e.outputs.pass == 'true' }} ;then
-              exit 0
-          else
-              exit 1
-          fi
+          go install github.com/onsi/ginkgo/v2/ginkgo@v2.3.0
+          echo "pass=false" >> $GITHUB_OUTPUT
