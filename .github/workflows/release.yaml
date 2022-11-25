@@ -71,18 +71,10 @@ jobs:
       tag: ${{ needs.get_ref.outputs.tag }}
     secrets: inherit
 
-  call-image-workflow:
-    needs: get_ref
-    uses: ./.github/workflows/image-build.yaml
-    with:
-      ref: ${{ needs.get_ref.outputs.tag }}
-      push: true
-    secrets: inherit
-
   create-binary-release:
     runs-on: ubuntu-latest
     name: Create Binary Release
-    needs: [get_ref,call-bin-workflow,call-image-workflow]
+    needs: [get_ref,call-bin-workflow]
     steps:
       - name: Download Artifact
         uses: actions/download-artifact@v3
@@ -119,6 +111,7 @@ jobs:
         id: save
         run: |
             latest_release=$(curl -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest |yq '.name')
+            echo ${latest_release}
             echo "release=${latest_release}"" >> $GITHUB_OUTPUT
             curl \
               -H "Accept: application/vnd.github+json" \
@@ -137,7 +130,7 @@ jobs:
   chart-release:
     name: Create Chart Release
     runs-on: ubuntu-latest
-    needs: [call-bin-workflow,call-image-workflow]
+    needs: [call-bin-workflow]
     permissions:
       contents: write
     steps:
