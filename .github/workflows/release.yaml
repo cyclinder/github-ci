@@ -132,7 +132,6 @@ jobs:
   chart-release:
     name: Create Chart Release
     runs-on: ubuntu-latest
-    needs: [call-bin-workflow]
     permissions:
       contents: write
     steps:
@@ -153,5 +152,7 @@ jobs:
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.4.0
+        with:
+          charts_dir: charts
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
