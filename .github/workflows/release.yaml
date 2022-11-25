@@ -113,7 +113,7 @@ jobs:
             latest_release=$(curl -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest |yq '.name')
             latest_release=`echo ${latest_release} | awk '{print $2}'`
             echo "release: ${latest_release}"
-            echo "release=${latest_release}"" >> $GITHUB_OUTPUT
+            echo "release=${latest_release}" >> $GITHUB_OUTPUT
             curl \
               -H "Accept: application/vnd.github+json" \
               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
