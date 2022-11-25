@@ -111,13 +111,15 @@ jobs:
         id: save
         run: |
             latest_release=$(curl -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest |yq '.name')
-            echo ${latest_release}
+            latest_release=`echo ${latest_release} | awk '{print $2}'`
+            echo "release: ${latest_release}"
             echo "release=${latest_release}"" >> $GITHUB_OUTPUT
             curl \
               -H "Accept: application/vnd.github+json" \
               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
               https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest |yq '.body' > changelog-${latest_release}.md
             echo "123" >> changelog-${latest_release}.md
+            cat changelog-${latest_release}.md
             cp -rp changelog-${latest_release}.md docs/
             cp -rp changelog-${latest_release}.md docs/
             rm -rf changelog-${latest_release}.md
