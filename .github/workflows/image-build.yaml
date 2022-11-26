@@ -57,6 +57,10 @@ jobs:
             exit 1
           fi
 
+      - name: test111
+        run: |
+          echo "ref: ${{ steps.tag.outputs.tag }}"
+
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
         with:
