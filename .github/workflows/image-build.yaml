@@ -38,7 +38,8 @@ jobs:
           if ${{ inputs.ref != '' }} ; then
             echo "call by workflow_call"
             echo "tag=${{ inputs.ref }}" >> $GITHUB_OUTPUT
-            dispatch=$(egrep "^v" <<< "${{ inputs.ref  }}")
+            dispatch=$(egrep "^v" <<< "${{ inputs.ref  }}") || echo "call by run e2e"
+            echo " dispatch=${dispatch} "
             if [ -n "${dispatch}" ] ; then
               echo "tag=main" >> $GITHUB_OUTPUT
             fi

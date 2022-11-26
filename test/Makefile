@@ -7,6 +7,7 @@ test: kind-init vlan install e2e
 vlan:
 	export VLAN_GATEWAY_CONTAINER=${VLAN_GATEWAY_CONTAINER} ; \
 	export IP_FAMILY=${IP_FAMILY} ; \
+	echo 123 ; \
 	bash scripts/network-config.sh
 
 .PHONY: e2e

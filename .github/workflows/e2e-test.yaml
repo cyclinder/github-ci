@@ -79,8 +79,17 @@ jobs:
           git_ref=$( git show -s --format='format:%H')
           echo "ref=${git_ref}" >> $GITHUB_OUTPUT
 
-  call_e2e_dual:
+  call_build_e2e_image:
     needs: [get_ref]
+    if: ${{ needs.get_ref.outputs.run_e2e == 'true' }}
+    uses: ./.github/workflows/image-build.yaml
+    with:
+      ref: ${{ needs.get_ref.outputs.ref }}
+      push: false
+    secrets: inherit
+
+  call_e2e_dual:
+    needs: [get_ref,call_build_e2e_image]
     uses: ./.github/workflows/e2e-init.yaml
     with:
       ip_family: dual
