@@ -125,23 +125,3 @@ jobs:
           echo "${{ needs.call_e2e_dual.result }} -> ${{ needs.call_e2e_dual.ref }} "
           echo "${{ needs.call_e2e_ipv4.result }} -> ${{ needs.call_e2e_ipv4.ref }} "
           echo "${{ needs.call_e2e_ipv6.result }} -> ${{ needs.call_e2e_ipv6.ref }} "
-
-  create_e2e_issue:
-    needs: [call_e2e_dual,call_e2e_ipv4,call_e2e_ipv6]
-    runs-on: ubuntu-latest
-    if: always() && !cancelled() && contains(needs.*.result, 'failure')
-    steps:
-      - name: echo
-        run: |
-          echo ${{ github.repository }}
-          echo ${{ github.repository_owner }}
-          echo "TIMESTAMP=`date +%Y-%m-%d`" >> $GITHUB_ENV
-      - name: create an issue
-        uses: dacbd/create-issue-action@v1.2.1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          title: "Auto E2E CI ${{ ENV.TIMESTAMP }}: Failed(Auto Create)"
-          body: |
-            action url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          labels: "kind/bug"
-          assignees: "cyclinder"
