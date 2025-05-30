@@ -57,17 +57,6 @@ jobs:
           mkdir -p "docs/en/docs/${component}/modules/$repo/release-notes"
           mkdir -p "docs/zh/docs/${component}/modules/$repo/release-notes"
 
-      - name: Update release notes
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PROJECT_REPO: ${{ inputs.project_repo || github.event.inputs.project_repo }}
-          PROJECT_NAME: ${{ env.repo_name }}
-          PROJECT_EN_RELEASE_NOTES_PATH: docs/en/docs/${{ env.component }}/modules/${{ env.repo_name }}/release-notes
-          PROJECT_ZH_RELEASE_NOTES_PATH: ""
-          MIN_SYNC_RELEASE_PROJECT_VERSION: ${{ inputs.min_version || github.event.inputs.min_version }}
-        run: |
-          ./tools/release.sh
-
       - name: Check for changes
         id: check_changes
         env:
@@ -90,6 +79,18 @@ jobs:
             exit 0
           fi
           echo "changes=true" >> $GITHUB_OUTPUT
+
+      - name: Update release notes
+        if: steps.check_changes.outputs.changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROJECT_REPO: ${{ inputs.project_repo || github.event.inputs.project_repo }}
+          PROJECT_NAME: ${{ env.repo_name }}
+          PROJECT_EN_RELEASE_NOTES_PATH: docs/en/docs/${{ env.component }}/modules/${{ env.repo_name }}/release-notes
+          PROJECT_ZH_RELEASE_NOTES_PATH: ""
+          MIN_SYNC_RELEASE_PROJECT_VERSION: ${{ inputs.min_version || github.event.inputs.min_version }}
+        run: |
+          ./tools/release.sh
 
       - name: Create Pull Request
         if: steps.check_changes.outputs.changes == 'true'
