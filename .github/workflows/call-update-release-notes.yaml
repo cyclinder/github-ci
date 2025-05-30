@@ -66,7 +66,7 @@ jobs:
           PROJECT_ZH_RELEASE_NOTES_PATH: ""
           MIN_SYNC_RELEASE_PROJECT_VERSION: ${{ inputs.min_version || github.event.inputs.min_version }}
         run: |
-          ./scripts/release.sh
+          ./tools/release.sh
 
       - name: Check for changes
         id: check_changes
