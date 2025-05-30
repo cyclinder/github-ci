@@ -16,7 +16,7 @@ jobs:
         project:
           - repo: "spidernet-io/spiderpool"
             min_version: "v0.6.0"
-            compoent: "network"
+            component: "network"
           # Add more projects here as needed
           # - repo: "metallb/metallb"
           #   min_version: "v0.13.0"
@@ -27,5 +27,5 @@ jobs:
     with:
       project_repo: ${{ matrix.project.repo }}
       min_version: ${{ matrix.project.min_version }}
-      compoent: ${{ matrix.project.compoent }}
+      component: ${{ matrix.project.component }}
     secrets: inherit

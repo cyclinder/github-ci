@@ -8,8 +8,8 @@ on:
         description: 'Project to update release notes for (e.g., spidernet-io/spiderpool)'
         required: true
         type: string
-      componet:
-        description: 'componet of the project (e.g., network)'
+      component:
+        description: 'component of the project (e.g., network)'
         required: true
         type: string
       min_version:
@@ -29,8 +29,8 @@ on:
         description: 'Minimum version to sync from (e.g., v0.6.0)'
         required: false
         default: 'v0.6.0'
-      componet:
-        description: 'componet of the project (e.g., network)'
+      component:
+        description: 'component of the project (e.g., network)'
         required: true
         type: string
 
