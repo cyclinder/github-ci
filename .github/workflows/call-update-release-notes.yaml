@@ -72,7 +72,7 @@ jobs:
           # Check if there are already open PRs for this project's release notes
           # Look for PRs that match both the title pattern and have the 'documentation' label
           existing_prs=$(gh pr list --repo ${{ github.repository }} --json title,labels,headRefName --jq '.[] | select(.title == "docs: auto update '"$REPO_NAME"' release notes" and (.labels | map(.name) | contains(["auto-sync-release-notes"]))) | .headRefName')
-
+          echo "existing_prs: $existing_prs"
           if [[ -n "$existing_prs" ]]; then
             echo "Found existing auto-generated PRs for $REPO_NAME release notes. Skipping PR creation."
             echo "changes=false" >> $GITHUB_OUTPUT
